@@ -1,0 +1,3 @@
+Nome di dominio: blog-fe-mt.longwavestudio.dev
+
+Backend url: https://todo-pp.longwavestudio.dev
