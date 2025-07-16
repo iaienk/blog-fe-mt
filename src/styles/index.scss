@@ -1,0 +1,15 @@
+@use './reset';
+@use './variables';
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-family: 'Montserrat', sans-serif;
+}
+
+.card {
+  background-color: var(--card-bg);
+  color: var(--text-color);
+  padding: 1rem;
+  border-radius: 12px;
+}
