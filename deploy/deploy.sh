@@ -36,3 +36,4 @@ echo "💧 Ricarico Nginx…"
 ssh -i "$SSH_KEY" $REMOTE_USER@$REMOTE_HOST "sudo systemctl reload nginx"
 
 echo "✅ Deploy completo!"
+ 
