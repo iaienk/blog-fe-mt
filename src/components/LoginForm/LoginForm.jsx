@@ -1,6 +1,6 @@
 import { useState } from "react";
 import styles from "./LoginForm.module.scss";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link  } from "react-router-dom";
 
 const LoginForm = () => {
   const [formData, setFormData] = useState({
@@ -72,7 +72,10 @@ const LoginForm = () => {
       />
 
       <button type="submit">Accedi</button>
-
+      <p className={styles.recovery}>
+        Hai dimenticato la password?{" "}
+        <Link to="/recupero-password">Recuperala qui</Link>
+      </p>
       {error && <p className={styles.error}>{error}</p>}
       {success && <p className={styles.success}>{success}</p>}
     </form>
