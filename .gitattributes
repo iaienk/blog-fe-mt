@@ -1,0 +1,2 @@
+# Forza gli .sh a rimanere in LF (Unix-style)
+*.sh text eol=lf

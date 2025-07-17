@@ -1,6 +1,7 @@
 import { useState } from "react";
 import styles from "./RegistrationForm.module.scss";
 import { useNavigate } from "react-router-dom";
+import { registerUser } from "../../services/registration.service.js"; // ✅ nuovo import
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -25,21 +26,9 @@ const RegistrationForm = () => {
     setSuccess("");
 
     try {
-      const res = await fetch("https://todo-pp.longwavestudio.dev/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.message || "Registrazione fallita.");
-      }
-
+      await registerUser(formData); // ✅ chiamata al service
       setSuccess("Registrazione completata con successo!");
-      setTimeout(() => navigate("/login"), 2000); // redirect al login
+      setTimeout(() => navigate("/login"), 2000);
     } catch (err) {
       setError(err.message);
     }
