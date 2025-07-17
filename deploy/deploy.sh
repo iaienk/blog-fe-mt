@@ -5,4 +5,4 @@ git checkout "$1"
 git pull
 rm -rf dist && mkdir dist
 tar -xzvf package.tar.gz -C dist
-rm package.tar.gz
+rm package.tar.gz 
