@@ -1,6 +1,6 @@
 import React, { useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import styles from './navbar.module.scss';
+import styles from './Navbar.module.scss';
 import logo from '../../assets/logo.svg';
 import { ThemeContext } from '../../context/ThemeContext';
 
