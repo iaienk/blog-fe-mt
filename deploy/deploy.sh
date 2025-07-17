@@ -4,5 +4,7 @@ git fetch
 git checkout $1
 git pull
 rm -rf dist && mkdir dist
-tar -xzvf package.tar.gz -C dist
+tar -xzvf package.tar.gz
+mv dist/* .
+rm -rf dist
 rm package.tar.gz
