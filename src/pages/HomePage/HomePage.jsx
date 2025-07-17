@@ -1,8 +1,6 @@
 import styles from './HomePage.module.scss'
-// src/components/SomeComponent.jsx
 import React from 'react';
-// importa l’SVG dal folder src/assets
-import workInProgress from '../assets/work-in-progress.svg';
+import workInProgress from '../../assets/work-in-progress.svg';
 
 const HomePage = () => {
   return (
