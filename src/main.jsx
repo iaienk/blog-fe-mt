@@ -1,10 +1,17 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './styles/index.scss'
-import App from './App.jsx'
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import './styles/index.scss';
+import App from './App.jsx';
+
+import ThemeProvider from './context/ThemeProvider';
+import AuthProvider from './context/AuthProvider'; // importa il nuovo provider
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+  <React.StrictMode>
+    <ThemeProvider>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </ThemeProvider>
+  </React.StrictMode>
+);

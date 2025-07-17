@@ -6,6 +6,7 @@
   --accent-color: #e67e22;
   --card-bg: #ffffffcc;
   --border-color: #dcdfe4;
+  --input-bg: #d4d4d4;
 }
 
 // DARK THEME (attivato con data-theme="dark")
@@ -17,6 +18,7 @@
   --accent-color: #e67e22;
   --card-bg: #1f2126cc;
   --border-color: #2a2d34;
+  --input-bg: #2a2d34;
 }
 
 @mixin card-style {
@@ -24,5 +26,5 @@
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
 }
