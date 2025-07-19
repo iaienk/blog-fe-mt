@@ -2,24 +2,23 @@
 set -euo pipefail
 
 cd /usr/local/repos/blog-fe-mt || exit 1
-BRANCH="${1:-main}"
 
-# 1) Porta il repo all’ultimo commit su origin/$BRANCH
+BRANCH="${1:-main}"
+echo "→ Checking out $BRANCH"
 git fetch origin
 git reset --hard origin/"$BRANCH"
 
-# 2) Controlla l’artifact
-[[ -f package.tar.gz ]] || { echo "❌ package.tar.gz non trovato!"; exit 2; }
-
-# 3) Pulisci la vecchia dist
+echo "→ Cleaning old build"
 rm -rf dist
 mkdir dist
 
-# 4) Estrai TUTTO dentro la nuova dist/
+echo "→ Extracting new build into dist/"
 tar -xzf package.tar.gz -C dist
 
-# 5) Pulisci l’archivio
+echo "→ Removing archive"
 rm package.tar.gz
 
-echo "✅ Deploy completato. Contenuto di dist/:"
-ls -la dist 
+echo "→ Final dist contents:"
+ls -R dist
+
+echo "✅ Deploy completo!"
