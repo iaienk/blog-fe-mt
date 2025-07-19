@@ -28,7 +28,7 @@ jobs:
           mkdir package
           tar -czvf package/package.tar.gz dist
 
-      - name: Debug: contenuto dell’archivio
+      - name: Debug contenuto dell’archivio
         run: |
           echo "→ dentro package/package.tar.gz:"
           tar -tzf package/package.tar.gz
@@ -60,7 +60,7 @@ jobs:
           name: react-build
           path: .
 
-      - name: Debug: verifica archive locale
+      - name: Debug verifica archive locale
         run: |
           echo "→ file scaricato:"
           ls -lh package/package.tar.gz
