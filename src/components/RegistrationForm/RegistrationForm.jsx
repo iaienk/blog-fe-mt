@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import styles from "./RegistrationForm.module.scss";
-import { useNavigate } from "react-router-dom";
-import { registerUser } from "../../services/registration.service.js"; // ✅ nuovo import
+import { registerUser } from "../../services/registration.service";
 
 const RegistrationForm = () => {
   const [formData, setFormData] = useState({
@@ -26,10 +26,11 @@ const RegistrationForm = () => {
     setSuccess("");
 
     try {
-      await registerUser(formData); // ✅ chiamata al service
+      await registerUser(formData);
       setSuccess("Registrazione completata con successo!");
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
+      // Qui mostriamo sempre il messaggio specifico
       setError(err.message);
     }
   };
@@ -66,6 +67,10 @@ const RegistrationForm = () => {
       />
 
       <button type="submit">Registrati</button>
+
+      <p className={styles.footerText}>
+        Hai già un account? <Link to="/login">Accedi qui</Link>
+      </p>
 
       {error && <p className={styles.error}>{error}</p>}
       {success && <p className={styles.success}>{success}</p>}
