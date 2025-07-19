@@ -12,6 +12,16 @@ export default defineConfig({
       ]
     })
   ],
+  build: {
+    // forza tutti gli asset a essere emessi come file
+    assetsInlineLimit: 0,
+    // (opzionale) pandas i nomi
+    rollupOptions: {
+      output: {
+        assetFileNames: 'assets/[name].[hash][extname]'
+      }
+    }
+  },
   test: {
     globals: true, // Per usare API globali come describe, it, expect
     environment: 'jsdom', // Ambiente per i test DOM
