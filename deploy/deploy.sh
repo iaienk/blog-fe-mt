@@ -19,4 +19,4 @@ rm -rf dist package.tar.gz
 tar -xzf package.tar.gz
 
 # 4) Rimuovi l’archivio
-rm package.tar.gz
+rm package.tar.gz 
