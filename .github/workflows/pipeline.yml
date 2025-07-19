@@ -26,6 +26,9 @@ jobs:
           npm run build
           mkdir package
           tar -czvf package/package.tar.gz dist
+          
+      - name: Debug: contenuto dell’archivio
+        run: tar -tzf package/package.tar.gz
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -52,7 +55,8 @@ jobs:
         uses: actions/download-artifact@v4
         with: 
           name: react-build
-          path: ./package
+          path: .
+
 
       - name: "Debug: List contents of downloaded artifact directory"
         run: ls -lh ./package/

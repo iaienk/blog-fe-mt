@@ -1,19 +1,22 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
 cd /usr/local/repos/blog-fe-mt || exit
 
 BRANCH="${1:-main}"
 
-# 1) Sincronizza con il remoto, scartando ogni modifica
+# allineo esattamente al remoto
 git fetch origin
 git reset --hard origin/"$BRANCH"
 
-# 2) Rimuovi la vecchia dist
+# pulisco la vecchia build
 rm -rf dist
 
-# 3) Estrai l’artifact compresso (package.tar.gz dev’essere ancora presente)
+# estraggo l’artifact (che contiene già dist/)
 tar -xzf package.tar.gz
 
-# 4) Pulisci l’archivio
+# cancello l’archivio
 rm package.tar.gz
+
+echo "✅ Deploy completato. Contenuto di dist/:"
+ls -la dist
