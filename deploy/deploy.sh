@@ -12,10 +12,7 @@ git fetch origin
 git reset --hard origin/"$BRANCH"
 
 # 3) Controlla che l'artifact ci sia
-if [[ ! -f package.tar.gz ]]; then
-  echo "❌ package.tar.gz non trovato!"
-  exit 2
-fi
+[[ -f package.tar.gz ]] || { echo "❌ package.tar.gz non trovato!"; exit 2; }
 
 # 4) Elimina la vecchia build e ricrea dist/
 echo "→ Pulisco dist/ precedente"
