@@ -26,7 +26,7 @@ jobs:
         run: |
           npm run build
           # crea un unico archive in root
-          tar -czvf package.tar.gz dist
+          tar -czvf package.tar.gz -C dist .
 
       - name: Debug inspect archive
         run: |
