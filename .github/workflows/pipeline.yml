@@ -26,8 +26,8 @@ jobs:
           npm run build
           mkdir package
           tar -czvf package/package.tar.gz dist
-          
-      - name: Debug: contenuto dell’archivio
+
+      - name: Debug: contenuto dell archivio
         run: tar -tzf package/package.tar.gz
 
       - name: Upload artifact
