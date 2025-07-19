@@ -28,7 +28,7 @@ jobs:
           # crea un unico archive in root
           tar -czvf package.tar.gz dist
 
-      - name: Debug: inspect archive
+      - name: Debug inspect archive
         run: |
           echo "→ Contenuto di package.tar.gz:"
           tar -tzf package.tar.gz
@@ -59,7 +59,7 @@ jobs:
           name: react-build
           path: .
 
-      - name: Debug: verify local artifact
+      - name: Debug verify local artifact
         run: |
           echo "→ File scaricato:"
           ls -lh package.tar.gz
