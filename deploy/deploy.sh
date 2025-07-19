@@ -22,4 +22,4 @@ tar -xzf package.tar.gz -C dist
 rm package.tar.gz
 
 echo "✅ Deploy completato. Contenuto di dist/:"
-ls -la dist
+ls -la dist 
