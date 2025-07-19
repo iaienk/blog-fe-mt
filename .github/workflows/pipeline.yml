@@ -22,22 +22,22 @@ jobs:
       - name: Run tests
         run: npm test
 
-      - name: Build app
+      - name: Build & package
         run: |
           npm run build
-          mkdir package
-          tar -czvf package/package.tar.gz dist
+          # crea un unico archive in root
+          tar -czvf package.tar.gz dist
 
-      - name: Debug contenuto dell’archivio
+      - name: Debug: inspect archive
         run: |
-          echo "→ dentro package/package.tar.gz:"
-          tar -tzf package/package.tar.gz
+          echo "→ Contenuto di package.tar.gz:"
+          tar -tzf package.tar.gz
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: react-build
-          path: package/package.tar.gz
+          path: package.tar.gz
 
   deploy:
     runs-on: ubuntu-latest
@@ -51,8 +51,7 @@ jobs:
           known_hosts: ${{ vars.AWS_HOST }}
 
       - name: Set up SSH
-        run: |
-          ssh-keyscan ${{ vars.AWS_HOST }} >> /home/runner/.ssh/known_hosts
+        run: ssh-keyscan ${{ vars.AWS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -60,18 +59,19 @@ jobs:
           name: react-build
           path: .
 
-      - name: Debug verifica archive locale
+      - name: Debug: verify local artifact
         run: |
-          echo "→ file scaricato:"
-          ls -lh package/package.tar.gz
-          echo "→ anteprima contenuto:"
-          tar -tzf package/package.tar.gz | head -n 10
+          echo "→ File scaricato:"
+          ls -lh package.tar.gz
+          echo "→ Anteprima contenuto:"
+          tar -tzf package.tar.gz | head -n 10
 
       - name: Deploy to server
         run: |
-          scp package/package.tar.gz ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }}:/usr/local/repos/blog-fe-mt/package.tar.gz
+          scp package.tar.gz ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }}:/usr/local/repos/blog-fe-mt/package.tar.gz
 
-      - name: Extract and move files
+      - name: Extract & deploy on server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }} \
-            "/usr/local/repos/blog-fe-mt/deploy/deploy.sh main"
+            "bash /usr/local/repos/blog-fe-mt/deploy/deploy.sh main"
+
