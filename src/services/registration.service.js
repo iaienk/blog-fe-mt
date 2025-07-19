@@ -1,7 +1,7 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 export const registerUser = async (userData) => {
-  const res = await fetch(`${BASE_URL}/auth/register`, {
+  const res = await fetch(`${BASE_URL}/user/register`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -10,8 +10,8 @@ export const registerUser = async (userData) => {
   });
 
   if (!res.ok) {
-    const errorData = await res.json();
-    throw new Error(errorData.message || "Errore nella registrazione.");
+    const errorData = await res.text(); // fallback se non è JSON
+    throw new Error(errorData || "Registrazione fallita.");
   }
 
   return await res.json();
