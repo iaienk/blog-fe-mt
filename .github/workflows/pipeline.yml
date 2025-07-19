@@ -60,7 +60,7 @@ jobs:
         name: Debug local artifact
 
       - run: |
-          scp package.tar.gz ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }}:/usr/local/repos/blog-fe-mt/package.tar.gz
+          scp package.tar.gz ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }}:/tmp/package.tar.gz
         name: Copy to server
 
       - run: |
