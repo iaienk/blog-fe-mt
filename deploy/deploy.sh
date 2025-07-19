@@ -1,22 +1,21 @@
 #!/usr/bin/env bash
 set -e
 
-# Cartella del progetto sul server
 cd /usr/local/repos/blog-fe-mt || exit
 
-# Branch di deploy (default a "main" se non lo passi)
+# Branch di deploy (default main)
 BRANCH="${1:-main}"
 
-# 1) Sincronizza forzatamente con il remoto, scartando ogni modifica locale
+# Sincronizza forzatamente con il remoto
 git fetch origin
 git reset --hard origin/"$BRANCH"
 git clean -fd
 
-# 2) Pulisci eventuali build precedenti
-rm -rf dist package.tar.gz
+# 1) Rimuovi solo la vecchia dist, NON il .tar.gz
+rm -rf dist
 
-# 3) Estrai l’artifact (assicurati che il tuo workflow scp abbia copiato package.tar.gz qui)
+# 2) Estrai l’artifact compresso (che contiene già dist/)
 tar -xzf package.tar.gz
 
-# 4) Rimuovi l’archivio
-rm package.tar.gz 
+# 3) Pulisci l’archivio
+rm package.tar.gz
