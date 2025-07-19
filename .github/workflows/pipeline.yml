@@ -58,8 +58,10 @@ jobs:
           path: .
 
 
-      - name: "Debug: List contents of downloaded artifact directory"
-        run: ls -lh ./package/
+      - name: Debug verifica archive
+        run: |
+          ls -lh package.tar.gz
+          tar -tzf package.tar.gz | head -n 10 
 
       - name: Deploy to server
         run: |
