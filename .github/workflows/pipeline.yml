@@ -59,10 +59,9 @@ jobs:
 
       - name: Deploy to server
         run: |
-          scp ./package/package.tar.gz ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }}:/usr/local/repos/blog-fe-mt
+          scp ./package/package.tar.gz ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }}:/usr/local/repos/blog-fe-mt/package.tar.gz
 
       - name: Extract and move files
         run: |
-          ssh -o StrictHostKeyChecking=no \
-            ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }} \
+          ssh -o StrictHostKeyChecking=no ${{ secrets.AWS_USER }}@${{ vars.AWS_HOST }} \
             "/usr/local/repos/blog-fe-mt/deploy/deploy.sh main"
