@@ -5,7 +5,7 @@ import LoginPage from './components/LoginForm/LoginForm.jsx'
 import RegisterPage from './components/RegistrationForm/RegistrationForm.jsx'
 import ResetPasswordForm from './components/ResetPasswordForm/ResetPasswordForm.jsx'
 import RecuperoPassword from './components/RecuperoPassword/RecuperoPassword.jsx'
-// import ProfilePage from './pages/ProfilePage'
+import ProfiloUtente from './components/ProfiloUtente/ProfiloUtente.jsx'
 // import PostPage from './pages/PostPage'
 
 const AppRoutes = () => {
@@ -23,12 +23,9 @@ const AppRoutes = () => {
         {/* 2) Form per impostare la nuova password, con token in URL */}
         <Route path="reset-password" element={<RecuperoPassword />} />
         <Route path="reset-password/:token" element={<RecuperoPassword />} />
-
-        {/* Altre rotte */}
-        {/*
-        <Route path="profile" element={<ProfilePage />} />
-        <Route path="post/:id" element={<PostPage />} />
-        */}
+        <Route path="profile" element={<ProfiloUtente />} />
+        {/* <Route path="post/:id" element={<PostPage />} /> */}
+      
       </Route>
     </Routes>
   )

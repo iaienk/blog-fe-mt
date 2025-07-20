@@ -34,4 +34,20 @@ export default defineConfig({
       },
     },
   },
+
+server: {
+    proxy: {
+      '/socket.io': {
+        target: 'https://todo-pp.longwavestudio.dev',
+        ws: true,
+        changeOrigin: true,
+        secure: false
+      },
+      '/user': {
+        target: 'https://todo-pp.longwavestudio.dev',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  }
 })

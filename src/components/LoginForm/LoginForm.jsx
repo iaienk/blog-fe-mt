@@ -1,66 +1,89 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import styles from "./LoginForm.module.scss";
-import { loginUser } from "../../services/login.service";
+import React, { useState, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../../context/AuthContext';
+import styles from './LoginForm.module.scss';
 
-const LoginForm = () => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+export default function LoginForm() {
   const navigate = useNavigate();
+  const { setUser } = useContext(AuthContext);
 
-  const handleChange = (e) =>
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
     try {
-      const data = await loginUser(formData);
-      // es. data.accessToken
-      localStorage.setItem("accessToken", data.accessToken);
-      setSuccess("Login eseguito con successo!");
-      setTimeout(() => navigate("/utente"), 1000);
+      // 1) Login…
+      const loginRes = await fetch('/user/login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!loginRes.ok) throw new Error('Login fallito');
+      const userData = await loginRes.json();
+      // userData = { id, email, accessToken, refreshToken }
+
+      // 2) “Maschero” il GET /user/profile via PATCH vuoto
+      const profiloRes = await fetch('/user/profile', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userData.accessToken}`
+        },
+        body: JSON.stringify({})
+      });
+      if (!profiloRes.ok) throw new Error('Impossibile recuperare il profilo');
+      const profilo = await profiloRes.json();
+      // profilo = { message, id, email, username, avatar }
+
+      // 3) Merge token + profilo ed effettua il setUser UNA SOLA VOLTA
+      const fullUser = { 
+        ...userData,    // contiene accessToken & refreshToken 
+        ...profilo      // contiene username, avatar, message…
+      };
+      setUser(fullUser);
+      navigate('/profile');
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message);
     }
   };
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <h2>Login</h2>
+    <form onSubmit={handleSubmit} className={styles.form}>
+  <h2>Accedi</h2>
+  {error && <p className={styles.errorMsg}>{error}</p>}
 
-      <input
-        type="email"
-        name="email"
-        placeholder="Email"
-        value={formData.email}
-        onChange={handleChange}
-        required
-      />
+  <div className={styles.field}>
+    <input
+      type="email"
+      placeholder="Email"
+      value={email}
+      onChange={e => setEmail(e.target.value)}
+      required
+    />
+    <p className={styles.placeholderMsg}> </p>
+  </div>
 
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-        value={formData.password}
-        onChange={handleChange}
-        required
-      />
+  <div className={styles.field}>
+    <input
+      type="password"
+      placeholder="Password"
+      value={password}
+      onChange={e => setPassword(e.target.value)}
+      required
+    />
+    <p className={styles.placeholderMsg}> </p>
+  </div>
 
-      <button type="submit">Accedi</button>
+  <button type="submit">Login</button>
 
-      <p className={styles.recovery}>
-        Hai dimenticato la password?{" "}
-        <Link to="/recupera-password">Recuperala qui</Link>
-      </p>
-
-      {error && <p className={styles.error}>{error}</p>}
-      {success && <p className={styles.success}>{success}</p>}
-    </form>
+  <div className={styles.footerText}>
+    <a href="/recupera-password">Hai dimenticato la password?</a>
+  </div>
+</form>
   );
-};
-
-export default LoginForm;
+}

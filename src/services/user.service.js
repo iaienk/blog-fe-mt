@@ -13,3 +13,17 @@ export const checkUsernameAvailability = async (username) => {
   const data = await res.json();
   return data.available; // true|false
 };
+
+export async function updateUserProfile(formData) {
+  const response = await fetch(`${BASE_URL}/user/update-profile`, {
+    method: 'PUT',
+    credentials: 'include', // se usi sessioni/cookies
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error('Errore aggiornamento profilo');
+  }
+
+  return response.json();
+}

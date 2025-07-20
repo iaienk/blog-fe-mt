@@ -15,6 +15,7 @@ const RegistrationForm = () => {
   const [success, setSuccess] = useState("");
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const PLACEHOLDER = 'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753049295/profilePlaceholder.webp';
 
   const navigate = useNavigate();
 
@@ -73,7 +74,11 @@ const RegistrationForm = () => {
   };
 
   return (
+    
     <form className={styles.form} onSubmit={handleSubmit}>
+            <img src={PLACEHOLDER}
+           alt="Avatar generico"
+           className={styles.avatarPlaceholder} />
       <h2>Registrati</h2>
 
       {/* USERNAME */}
