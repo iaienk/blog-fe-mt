@@ -1,44 +1,94 @@
-import { useState } from "react";
-import styles from "./RecuperoPassword.module.scss";
-import { requestPasswordReset } from "../../services/password.service";
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useParams, useNavigate } from 'react-router-dom';
+import { validateResetToken, resetPassword } from '../../services/password.service';
 
-const RecuperoPassword = () => {
-  const [email, setEmail] = useState("");
-  const [feedback, setFeedback] = useState("");
-  const [error, setError] = useState("");
+export default function RecuperoPassword() {
+  const [searchParams] = useSearchParams();
+  const params = useParams();
+  const navigate = useNavigate();
+
+  // Prende il token da ?token= oppure da /reset-password/:token
+  const token = searchParams.get('token') || params.token || '';
+
+  const [status, setStatus]      = useState('checking');
+  const [password, setPassword]  = useState('');
+  const [confirmPwd, setConfirmPwd] = useState('');
+  const [error, setError]        = useState(null);
+  const [success, setSuccess]    = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!token) {
+      setStatus('invalid');
+      return;
+    }
+    validateResetToken(token)
+      .then(() => setStatus('ready'))
+      .catch(() => setStatus('invalid'));
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFeedback("");
-    setError("");
+    setError(null);
+
+    if (password !== confirmPwd) {
+      setError('Le password non corrispondono');
+      return;
+    }
+    if (password.length < 6) {
+      setError('La password deve essere di almeno 6 caratteri');
+      return;
+    }
 
     try {
-      await requestPasswordReset(email);
-      setFeedback("Se l'email è registrata, riceverai istruzioni per il reset.");
+      setSubmitting(true);
+      const res = await resetPassword(token, password);
+      setSuccess(res.message);
+      setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      setError(err.message || "Errore durante la richiesta.");
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
+  if (status === 'checking') return <p>Verifico il token…</p>;
+  if (status === 'invalid')  return <p style={{ color: 'red' }}>Token non valido o scaduto.</p>;
+
   return (
-    <form className={styles.form} onSubmit={handleSubmit}>
-      <h2>Recupera Password</h2>
-
-      <input
-        type="email"
-        name="email"
-        placeholder="Inserisci la tua email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-
-      <button type="submit">Invia</button>
-
-      {feedback && <p className={styles.success}>{feedback}</p>}
-      {error && <p className={styles.error}>{error}</p>}
-    </form>
+    <div style={{ maxWidth: 400, margin: '2rem auto' }}>
+      <h2>Reimposta la Password</h2>
+      {error   && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+      {success && <div style={{ color: 'green', marginBottom: '1rem' }}>{success}</div>}
+      {!success && (
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '1rem' }}>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              required
+              minLength={6}
+              placeholder="Nuova password"
+              style={{ width: '100%', padding: '0.5rem' }}
+            />
+          </div>
+          <div style={{ marginBottom: '1rem' }}>
+            <input
+              type="password"
+              value={confirmPwd}
+              onChange={e => setConfirmPwd(e.target.value)}
+              required
+              minLength={6}
+              placeholder="Conferma password"
+              style={{ width: '100%', padding: '0.5rem' }}
+            />
+          </div>
+          <button type="submit" disabled={submitting} style={{ padding: '0.5rem 1rem', width: '100%' }}>
+            {submitting ? 'Invio in corso…' : 'Reimposta Password'}
+          </button>
+        </form>
+      )}
+    </div>
   );
-};
-
-export default RecuperoPassword;
+}

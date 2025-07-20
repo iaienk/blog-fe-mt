@@ -3,25 +3,35 @@ import Layout from './layouts/MainLayout'
 import HomePage from './pages/HomePage/HomePage'
 import LoginPage from './components/LoginForm/LoginForm.jsx'
 import RegisterPage from './components/RegistrationForm/RegistrationForm.jsx'
+import ResetPasswordForm from './components/ResetPasswordForm/ResetPasswordForm.jsx'
 import RecuperoPassword from './components/RecuperoPassword/RecuperoPassword.jsx'
-import ResetPasswordForm from './ResetPasswordForm/ResetPasswordForm.jsx'
 // import ProfilePage from './pages/ProfilePage'
 // import PostPage from './pages/PostPage'
 
-const routes = () => {
+const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
+        {/* Home e autenticazione */}
         <Route index element={<HomePage />} />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
-        <Route path="recupero-password" element={<RecuperoPassword />} />
-        <Route path="reset-password" element={<ResetPasswordForm />}/>
-        {/* <Route path="profile" element={<ProfilePage />} />
-        <Route path="post/:id" element={<PostPage />} /> */}
+
+        {/* 1) Form per richiedere il link di reset via email */}
+        <Route path="recupera-password" element={<ResetPasswordForm />} />
+
+        {/* 2) Form per impostare la nuova password, con token in URL */}
+        <Route path="reset-password" element={<RecuperoPassword />} />
+        <Route path="reset-password/:token" element={<RecuperoPassword />} />
+
+        {/* Altre rotte */}
+        {/*
+        <Route path="profile" element={<ProfilePage />} />
+        <Route path="post/:id" element={<PostPage />} />
+        */}
       </Route>
     </Routes>
   )
 }
 
-export default routes
+export default AppRoutes

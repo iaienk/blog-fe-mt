@@ -1,44 +1,76 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 /**
- * Invia l’email per richiedere il reset
+ * Richiede l’invio di un’email per il reset della password.
+ * @param {string} email - Indirizzo email dell’utente.
+ * @returns {Promise<{ message: string }>}
  */
-export const requestPasswordReset = async (email) => {
+export async function requestPasswordReset(email) {
+  if (typeof email !== 'string' || !email.includes('@')) {
+    throw new Error('Inserisci un indirizzo email valido');
+  }
+
   const res = await fetch(`${BASE_URL}/user/forgot-password`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
   });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = null; }
 
+  const data = await res.json();
   if (!res.ok) {
-    if (res.status === 404) throw new Error("Indirizzo email non registrato.");
-    throw new Error(data?.message || `Errore ${res.status}: ${text}`);
+    throw new Error(data.message || 'Errore nella richiesta di reset');
   }
-
   return data;
-};
+}
 
 /**
- * Completa il reset usando il token via query param
+ * Verifica se il token di reset è valido.
+ * @param {string} token - Token di 10 caratteri.
+ * @returns {Promise<{ valid: boolean; message: string }>}
  */
-export const resetPassword = async (token, newPassword) => {
-  const url = `${BASE_URL}/user/reset-password?token=${encodeURIComponent(token)}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ password: newPassword }),
-  });
-  const text = await res.text();
-  let data;
-  try { data = JSON.parse(text); } catch { data = null; }
-
-  if (!res.ok) {
-    if (res.status === 400) throw new Error(data?.message || "Token non valido o scaduto.");
-    throw new Error(data?.message || `Errore ${res.status}`);
+export async function validateResetToken(token) {
+  if (typeof token !== 'string' || token.length !== 10) {
+    throw new Error('Token non valido (deve essere una stringa di 10 caratteri)');
   }
 
+  const res = await fetch(`${BASE_URL}/user/validate-reset-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Errore nella validazione del token');
+  }
   return data;
-};
+}
+
+/**
+ * Invia la nuova password insieme al token di reset.
+ * @param {string} token - Token di reset (10 caratteri).
+ * @param {string} password - Nuova password (minimo 6 caratteri).
+ * @returns {Promise<{ message: string }>}
+ */
+export async function resetPassword(token, password) {
+  console.log('[DEBUG resetPassword] token, password:', token, password);
+  console.log('[DEBUG resetPassword] URL gonna be:', `${BASE_URL}/user/reset-password`);
+  if (typeof token !== 'string' || token.length !== 10) {
+    throw new Error('Token non valido');
+  }
+  if (typeof password !== 'string' || password.length < 6) {
+    throw new Error('La password deve essere di almeno 6 caratteri');
+  }
+
+  const res = await fetch(`${BASE_URL}/user/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, password }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.message || 'Errore nel reset della password');
+  }
+  return data;
+}

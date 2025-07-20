@@ -54,7 +54,7 @@ const LoginForm = () => {
 
       <p className={styles.recovery}>
         Hai dimenticato la password?{" "}
-        <Link to="/recupero-password">Recuperala qui</Link>
+        <Link to="/recupera-password">Recuperala qui</Link>
       </p>
 
       {error && <p className={styles.error}>{error}</p>}

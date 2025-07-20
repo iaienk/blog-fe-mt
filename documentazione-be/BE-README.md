@@ -466,6 +466,78 @@ http://localhost:8026/reset-password/W9v1PX7bKD
 
 - _Returns 500_ on Internal server or database error
 
+## Validate Reset Token
+
+The endpoint `POST /user/validate-reset-token` is used to validate whether a password reset token is still valid and exists in the system. This can be useful before allowing the user to access the reset password form.
+
+### Validation
+
+Required fields:
+
+- token: A required string of exactly 10 characters
+
+- Headers must include:
+
+`'Content-Type': 'application/json'`
+
+### Request Body
+
+```js
+{
+  "token": "10-character-token"
+}
+```
+
+### Response
+
+_If token is valid:_
+
+```js
+
+Status: 200 OK
+{
+  "valid": true,
+  "message": "Valid token"
+}
+```
+
+_If token is invalid or not found:_
+
+```js
+
+Status: 404 Not Found
+{
+  "valid": false,
+  "message": "Reset token not found"
+}
+```
+
+## Flow
+
+- _Route_:
+
+The client sends a POST request to /user/validate-reset-token with a JSON body containing the reset token.
+
+- _Controller_:
+
+The controller extracts the token from the request body and passes it to the service layer through isTokenValid(token). If the token exists in the system, it returns a 200 OK response with a message confirming its validity. Otherwise, it responds with a 404 status and an error message indicating that the token was not found
+
+- *Service Layer":
+
+The service handles the logic for verifying the token’s existence. It queries the reset token repository using the provided token. If a token is found, the service returns true, indicating it is valid; otherwise, it returns false.
+
+- *Repository Layer":
+
+The repository is responsible for communicating directly with the database to verify the existence of a reset token. It performs a query to search for a document whose resetPasswordToken field matches the provided token value. If a matching record is found, it returns the token data; otherwise, it returns null, indicating that the token is either invalid or has expired.
+
+### Error Handling:
+
+- Returns _400 Bad Request_ if the request fails validation (token is missing or not a string of exactly 10 characters)
+
+- Returns _404 Not Found_ if the token does not exist in the database
+
+- Returns _500 Internal Server Error_ for unexpected server/database failures
+
 ## Reset Password
 
 The endpoint _POST /user/reset-password_ allows a user to reset their password using a previously generated reset token.
