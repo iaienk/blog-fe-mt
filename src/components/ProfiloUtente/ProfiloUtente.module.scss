@@ -113,3 +113,24 @@
     min-height: 1.2em;
   }
 }
+
+.containerProfilo {
+  text-align: center;
+  padding: 2rem;
+}
+
+.loginButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1.5rem;
+  font-size: 1rem;
+  background-color: var(--primary-color);
+  color: #fff;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    filter: brightness(0.9);
+  }
+}

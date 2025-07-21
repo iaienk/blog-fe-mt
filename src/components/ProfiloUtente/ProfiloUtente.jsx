@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { socket } from '../../socket';
 import styles from './ProfiloUtente.module.scss';
@@ -14,6 +15,7 @@ export default function ProfiloUtente() {
   const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
   const [usernameDisponibile, setUsernameDisponibile] = useState(true);
   const [feedback, setFeedback] = useState('');
+  const navigate = useNavigate();
 
   // Sincronizzo quando cambia user
   useEffect(() => {
@@ -96,11 +98,14 @@ export default function ProfiloUtente() {
 
   // Early-return se non autenticato
   if (!user) {
+    const goToLogin = () => navigate('/login');
+
     return (
       <div className={styles.containerProfilo}>
-        <p>
-          Devi effettuare il <a href="/login">login</a> per accedere al profilo.
-        </p>
+        <p>Devi effettuare il login per accedere al profilo.</p>
+        <button onClick={goToLogin} className={styles.loginButton}>
+          Vai al Login
+        </button>
       </div>
     );
   }
