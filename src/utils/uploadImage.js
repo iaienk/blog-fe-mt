@@ -8,5 +8,5 @@ export async function uploadImageToCloudinary(file) {
   );
   if (!res.ok) throw new Error('Upload avatar fallito');
   const data = await res.json();
-  return data.secure_url;  // es. "https://res.cloudinary.com/.../avatar123.jpg"
+  return data.secure_url; 
 }

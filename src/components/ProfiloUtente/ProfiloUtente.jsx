@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../context/AuthContext';
-import { socket } from '../../socket';                // ← non dimenticare questo import
+import { socket } from '../../socket';
 import styles from './ProfiloUtente.module.scss';
 import { uploadImageToCloudinary } from '../../utils/uploadImage';
 
