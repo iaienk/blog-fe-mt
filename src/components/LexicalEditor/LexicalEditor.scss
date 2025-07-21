@@ -1,0 +1,23 @@
+.editor-container {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-height: 150px;
+  background-color: var(--bg-color);
+}
+
+.editor-input {
+  outline: none;
+  width: 100%;
+  color: var(--text-color);
+  min-height: 150px;
+  // 👇 questa linea è FONDAMENTALE:
+  white-space: pre-wrap;
+}
+
+.editor-placeholder {
+  position: absolute;
+  color: #888;
+  pointer-events: none;
+}

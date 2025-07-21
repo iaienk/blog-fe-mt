@@ -12,10 +12,19 @@
     "test-ui": "vitest --ui"
   },
   "dependencies": {
+    "@lexical/react": "^0.33.1",
+    "@tiptap/extension-bullet-list": "^3.0.7",
+    "@tiptap/extension-list-item": "^3.0.7",
+    "@tiptap/extension-ordered-list": "^3.0.7",
+    "@tiptap/react": "^3.0.7",
+    "@tiptap/starter-kit": "^3.0.7",
+    "lexical": "^0.33.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.3",
+    "react-select": "^5.10.2",
+    "react-toastify": "^11.0.5",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1"
   },
