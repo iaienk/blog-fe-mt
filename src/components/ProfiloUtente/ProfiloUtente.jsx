@@ -1,57 +1,69 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-import { socket } from '../../socket';
+import { getSocket } from '../../socket';
 import styles from './ProfiloUtente.module.scss';
 import { uploadImageToCloudinary } from '../../utils/uploadImage';
 
 const PLACEHOLDER = '/images/avatar-placeholder.png';
+const socket = getSocket();
 
 export default function ProfiloUtente() {
   const { user, setUser } = useContext(AuthContext);
 
   const [username, setUsername] = useState(user?.username || '');
-  const [avatar, setAvatar]     = useState(user?.avatar   || PLACEHOLDER);
+  const [avatar, setAvatar] = useState(user?.avatar || PLACEHOLDER);
   const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
   const [usernameDisponibile, setUsernameDisponibile] = useState(true);
   const [feedback, setFeedback] = useState('');
   const navigate = useNavigate();
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Sincronizzo quando cambia user
   useEffect(() => {
     if (!user) return;
     setUsername(user.username);
     setAvatar(user.avatar || PLACEHOLDER);
+    setIsEditing(false);
   }, [user]);
 
-  // Controllo disponibilità username
+  useEffect(() => {
+    if (feedback === 'Profilo aggiornato con successo!') {
+      const timer = setTimeout(() => setFeedback(''), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
+
   useEffect(() => {
     if (!user || username === user.username) return;
-    const timer = setTimeout(() => socket.emit('checkUsername', username), 500);
+    const timer = setTimeout(() => {
+      if (socket?.connected) {
+        socket.emit('checkUsername', username);
+      }
+    }, 500);
     return () => clearTimeout(timer);
-  }, [username, user]);
+  }, [username, user, isEditing]);
 
-  // Ricevo eventi socket e pulisco al dismount
   useEffect(() => {
-    const onAvail   = ({ available }) => setUsernameDisponibile(available);
+    if (!socket?.connected) return;
+
+    const onAvail = ({ available }) => setUsernameDisponibile(available);
     const onUpdated = updated => {
       setUser({ ...user, ...updated });
       setFeedback('Profilo aggiornato con successo!');
     };
-    const onError   = msg => setFeedback(msg || 'Errore durante l’aggiornamento.');
+    const onError = msg => setFeedback(msg || 'Errore durante l’aggiornamento.');
 
     socket.on('usernameAvailability', onAvail);
-    socket.on('profileUpdated',       onUpdated);
-    socket.on('updateError',          onError);
+    socket.on('profileUpdated', onUpdated);
+    socket.on('updateError', onError);
 
     return () => {
       socket.off('usernameAvailability', onAvail);
-      socket.off('profileUpdated',       onUpdated);
-      socket.off('updateError',          onError);
+      socket.off('profileUpdated', onUpdated);
+      socket.off('updateError', onError);
     };
   }, [user, setUser]);
 
-  // Upload avatar su Cloudinary
   const handleAvatarChange = async e => {
     const file = e.target.files[0];
     if (!file) return;
@@ -67,7 +79,6 @@ export default function ProfiloUtente() {
     }
   };
 
-  // Salvo le modifiche (username + eventualmente avatar URL)
   const handleSalva = async () => {
     if (!usernameDisponibile) {
       setFeedback('Username non disponibile!');
@@ -82,11 +93,13 @@ export default function ProfiloUtente() {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.accessToken}`
+          'Authorization': `Bearer ${user.accessToken}`,
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify(body),
       });
+
       if (!res.ok) throw new Error('Aggiornamento fallito');
+
       const updated = await res.json();
       setUser({ ...user, ...updated });
       setFeedback('Profilo aggiornato con successo!');
@@ -96,10 +109,16 @@ export default function ProfiloUtente() {
     }
   };
 
-  // Early-return se non autenticato
+  const handleAnnulla = () => {
+    setUsername(user.username);
+    setAvatar(user.avatar || PLACEHOLDER);
+    setNuovoAvatarUrl(null);
+    setFeedback('');
+    setIsEditing(false);
+  };
+
   if (!user) {
     const goToLogin = () => navigate('/login');
-
     return (
       <div className={styles.containerProfilo}>
         <p>Devi effettuare il login per accedere al profilo.</p>
@@ -112,46 +131,63 @@ export default function ProfiloUtente() {
 
   return (
     <div className={styles.containerProfilo}>
+      {/* Avatar */}
       <div className={styles.avatar}>
         <img src={avatar} alt="Avatar utente" />
-        <input type="file" accept="image/*" onChange={handleAvatarChange} />
-      </div>
-
-     <div className={styles.infoUtente}>
-        <label htmlFor="email">Email:</label>
-        <input
-          id="email"
-          type="email"
-          value={user.email}
-          readOnly
-        />
-     </div>
-
-      <div className={styles.infoUtente}>
-        <label htmlFor="username">Username:</label>
-        <input
-          id="username"
-          type="text"
-          value={username}
-          onChange={e => {
-            setUsername(e.target.value);
-            setFeedback('');
-          }}
-        />
-        {username !== user.username && (
-          <span className={
-            usernameDisponibile
-              ? styles.disponibile
-              : styles.nonDisponibile
-          }>
-            {usernameDisponibile
-              ? 'Username disponibile ✅'
-              : 'Username non disponibile ❌'}
-          </span>
+        {isEditing && (
+          <input type="file" accept="image/*" onChange={handleAvatarChange} />
         )}
       </div>
 
-      <button onClick={handleSalva}>Salva modifiche</button>
+      <div className={styles.infoUtente}>
+        <label htmlFor="email">Email:</label>
+        <input id="email" type="email" value={user.email} readOnly />
+      </div>
+
+      <div className={styles.infoUtente}>
+        <label>Username:</label>
+        {isEditing ? (
+          <>
+            <input
+              type="text"
+              value={username}
+              onChange={e => {
+                setUsername(e.target.value);
+                setFeedback('');
+              }}
+            />
+            {username !== user.username && (
+              <span
+                className={
+                  usernameDisponibile
+                    ? styles.disponibile
+                    : styles.nonDisponibile
+                }
+              >
+                {usernameDisponibile
+                  ? 'Username disponibile ✅'
+                  : 'Username non disponibile ❌'}
+              </span>
+            )}
+          </>
+        ) : (
+          <span className={styles.value}>{user.username}</span>
+        )}
+      </div>
+
+      <div className={styles.actions}>
+        {!isEditing ? (
+          <button onClick={() => setIsEditing(true)}>Modifica profilo</button>
+        ) : (
+          <>
+            <button onClick={handleSalva}>Salva modifiche</button>
+            <button onClick={handleAnnulla} className={styles.secondary}>
+              Annulla
+            </button>
+          </>
+        )}
+      </div>
+
       {feedback && <p className={styles.feedback}>{feedback}</p>}
     </div>
   );

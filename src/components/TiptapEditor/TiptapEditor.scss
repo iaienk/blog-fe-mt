@@ -30,6 +30,11 @@
 
 .editor-container {
   .ProseMirror {
+      min-height: 150px; // ⬅️ Aumenta qui l’altezza
+      padding: 0.5rem;
+      line-height: 1.5;
+      font-weight: normal;
+  
     ul {
       list-style-type: disc;     // • puntini
       padding-left: 2rem;
@@ -47,3 +52,4 @@
     }
   }
 }
+

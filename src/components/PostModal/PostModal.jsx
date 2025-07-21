@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../Modal/Modal';
 import CreatableSelect from 'react-select/creatable';
 import TiptapEditor from '../TiptapEditor/TiptapEditor';
-import { socket } from '../../socket';
+import { getSocket } from '../../socket'; // usa getSocket
 import { uploadImageToCloudinary } from '../../utils/uploadImage.js';
 import { toast } from 'react-toastify';
 import styles from './PostModal.module.scss';
@@ -20,54 +20,78 @@ export function PostModal({ mode, initialData = {}, onClose }) {
   const [availableTags, setAvailableTags] = useState([]);
   const [imageFile, setImageFile] = useState(null);
 
+  const socket = getSocket();
+
   useEffect(() => {
+    if (!socket) return;
     socket.emit(
       'GET_TAGS',
       { name: '', cursor: null, direction: 'next', limit: 50 },
       res => {
-        if (res.success) {
+        if (res?.success) {
           setAvailableTags(res.data.tags.map(t => ({ value: t, label: t })));
         }
       }
     );
-  }, []);
+  }, [socket]);
 
   const handleSubmit = async () => {
-    if (title.trim().length < 3) {
-      return toast.error('Titolo troppo corto (minimo 3 caratteri)');
-    }
-    if (content.trim().length < 10) {
-      return toast.error('Contenuto troppo breve (minimo 10 caratteri)');
-    }
+  console.log('[DEBUG] Cliccato Crea');
 
-    let imageUrl = initialData.image || '';
-    try {
-      if (imageFile) {
-        imageUrl = await uploadImageToCloudinary(imageFile);
-      }
-    } catch (err) {
-      return toast.error('Upload immagine fallito: ' + err.message);
+  const plainText = content.replace(/<[^>]+>/g, '').trim();
+  if (title.trim().length < 3) {
+    return toast.error('Titolo troppo corto (minimo 3 caratteri)');
+  }
+  if (plainText.length < 10) {
+    return toast.error('Contenuto troppo breve (minimo 10 caratteri)');
+  }
+
+  let imageUrl = initialData.image || '';
+  try {
+    if (imageFile) {
+      imageUrl = await uploadImageToCloudinary(imageFile);
     }
+  } catch (err) {
+    return toast.error('Upload immagine fallito: ' + err.message);
+  }
 
-    const payload = {
-      ...(mode === 'edit' && { postId: initialData.id }),
-      title,
-      content,
-      publishDate: publishDate.getTime(),
-      image: imageUrl,
-      tags: tags.map(t => t.value)
-    };
-
-    const event = mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST';
-    socket.emit(event, payload, response => {
-      if (response.success) {
-        toast.success(`Post ${mode === 'create' ? 'creato' : 'aggiornato'} con successo`);
-        onClose();
-      } else {
-        toast.error(response.error.message);
-      }
-    });
+  const payload = {
+    ...(mode === 'edit' && { postId: initialData.id }),
+    title,
+    content,
+    publishDate: publishDate.getTime(),
+    image: imageUrl,
+    tags: tags.map(t => t.value),
+    userIds: []
   };
+
+  const socket = getSocket();
+  if (!socket) {
+    console.error('[ERRORE] socket non inizializzato');
+    toast.error('Connessione non disponibile. Riprova più tardi.');
+    return;
+  }
+
+  console.log('Invio evento', mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST', payload);
+
+  let callbackCalled = false;
+  socket.emit(mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST', payload, response => {
+    callbackCalled = true;
+    console.log('[SOCKET RESPONSE]', response);
+    if (response.success) {
+      toast.success(`Post ${mode === 'create' ? 'creato' : 'aggiornato'} con successo`);
+      onClose();
+    } else {
+      toast.error(response.error?.message || 'Errore generico dal server');
+    }
+  });
+
+  setTimeout(() => {
+    if (!callbackCalled) {
+      toast.error('Nessuna risposta dal server. Controlla la connessione o riprova.');
+    }
+  }, 3000);
+};
 
   return (
     <Modal onClose={onClose} className={styles['post-modal']}>

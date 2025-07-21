@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { AuthContext } from './AuthContext';
+import { connectSocket } from '../socket';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -9,6 +10,13 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
+
+useEffect(() => {
+  const token = user?.accessToken;
+  if (token) {
+    connectSocket();
+  }
+}, [user]);
 
   useEffect(() => {
     if (user) localStorage.setItem('user', JSON.stringify(user));
