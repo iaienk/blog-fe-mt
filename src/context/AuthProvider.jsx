@@ -11,16 +11,16 @@ export function AuthProvider({ children }) {
     }
   });
 
-useEffect(() => {
-  const token = user?.accessToken;
-  if (token) {
-    connectSocket();
-  }
-}, [user]);
-
+  // ✅ Salva user e token localmente + connessione socket
   useEffect(() => {
-    if (user) localStorage.setItem('user', JSON.stringify(user));
-    else localStorage.removeItem('user');
+    if (user?.accessToken) {
+      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', user.accessToken);  // 🔑 utile anche altrove se serve
+      connectSocket(user.accessToken);                  // ✅ passa token attivo
+    } else {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
   }, [user]);
 
   return (

@@ -7,17 +7,27 @@ export function connectSocket() {
     socket.disconnect(); // disconnetti socket precedente, se esiste
   }
 
-  socket = io('/', {
+  socket = io('/multiuserblog', {
     path: '/socket.io',
     withCredentials: true,
     auth: {
-      token: localStorage.getItem('token'),
-    },
-    // transports: ['websocket'], // opzionale
+      token: (() => {
+        try {
+          return JSON.parse(localStorage.getItem('user'))?.accessToken || null;
+        } catch {
+          return null;
+        }
+      })(),
+    }
   });
+  console.log('[SOCKET] Connesso al namespace:', socket.nsp);
 
   socket.on('connect', () => {
     console.log('[SOCKET] connesso con id:', socket.id);
+  });
+
+  socket.on('postCreated', post => {
+    console.log('Nuovo post creato:', post);
   });
 
   socket.onAny((event, ...args) => {

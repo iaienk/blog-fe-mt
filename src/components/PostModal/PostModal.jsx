@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../Modal/Modal';
 import CreatableSelect from 'react-select/creatable';
 import TiptapEditor from '../TiptapEditor/TiptapEditor';
-import { getSocket } from '../../socket'; // usa getSocket
+import { getSocket } from '../../socket';
 import { uploadImageToCloudinary } from '../../utils/uploadImage.js';
 import { toast } from 'react-toastify';
 import styles from './PostModal.module.scss';
 import { FiX, FiSave } from 'react-icons/fi';
+import { AuthContext } from '../../context/AuthContext';
 
 export function PostModal({ mode, initialData = {}, onClose }) {
   const [title, setTitle] = useState(initialData.title || '');
@@ -22,6 +23,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
 
   const socket = getSocket();
 
+
   useEffect(() => {
     if (!socket) return;
     socket.emit(
@@ -36,62 +38,65 @@ export function PostModal({ mode, initialData = {}, onClose }) {
   }, [socket]);
 
   const handleSubmit = async () => {
-  console.log('[DEBUG] Cliccato Crea');
+    console.log('[DEBUG] Cliccato Crea');
+    console.log('[DEBUG] JWT attuale dal localStorage:', localStorage.getItem('token'));
 
-  const plainText = content.replace(/<[^>]+>/g, '').trim();
-  if (title.trim().length < 3) {
-    return toast.error('Titolo troppo corto (minimo 3 caratteri)');
-  }
-  if (plainText.length < 10) {
-    return toast.error('Contenuto troppo breve (minimo 10 caratteri)');
-  }
-
-  let imageUrl = initialData.image || '';
-  try {
-    if (imageFile) {
-      imageUrl = await uploadImageToCloudinary(imageFile);
+    const plainText = content.replace(/<[^>]+>/g, '').trim();
+    if (title.trim().length < 3) {
+      return toast.error('Titolo troppo corto (minimo 3 caratteri)');
     }
-  } catch (err) {
-    return toast.error('Upload immagine fallito: ' + err.message);
-  }
+    if (plainText.length < 10) {
+      return toast.error('Contenuto troppo breve (minimo 10 caratteri)');
+    }
 
-  const payload = {
-    ...(mode === 'edit' && { postId: initialData.id }),
-    title,
-    content,
-    publishDate: publishDate.getTime(),
-    image: imageUrl,
-    tags: tags.map(t => t.value),
-    userIds: []
+    let imageUrl = initialData.image || '';
+    try {
+      if (imageFile) {
+        imageUrl = await uploadImageToCloudinary(imageFile);
+      }
+    } catch (err) {
+      return toast.error('Upload immagine fallito: ' + err.message);
+    }
+
+    const payload = {
+      ...(mode === 'edit' && { postId: initialData.id }),
+      title,
+      content,
+      publishDate: publishDate.getTime(),
+      image: imageUrl,
+      tags: tags.map(t => t.value),
+      userIds: []
+    };
+
+    if (!socket) {
+      console.error('[ERRORE] socket non inizializzato');
+      toast.error('Connessione non disponibile. Riprova più tardi.');
+      return;
+    }
+
+    const event = mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST';
+    console.log(`[DEBUG] Emit '${event}' con payload:`, payload);
+
+    let callbackCalled = false;
+
+    socket.emit(event, payload, response => {
+      callbackCalled = true;
+      console.log('[SOCKET RESPONSE]', response);
+      if (response.success) {
+        toast.success(`Post ${mode === 'create' ? 'creato' : 'aggiornato'} con successo`);
+        onClose();
+      } else {
+        console.error('[SOCKET ERROR]', response);
+        toast.error(response.error?.message || 'Errore generico dal server');
+      }
+    });
+    
+    setTimeout(() => {
+      if (!callbackCalled) {
+        toast.error('Nessuna risposta dal server. Controlla la connessione o riprova.');
+      }
+    }, 3000);
   };
-
-  const socket = getSocket();
-  if (!socket) {
-    console.error('[ERRORE] socket non inizializzato');
-    toast.error('Connessione non disponibile. Riprova più tardi.');
-    return;
-  }
-
-  console.log('Invio evento', mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST', payload);
-
-  let callbackCalled = false;
-  socket.emit(mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST', payload, response => {
-    callbackCalled = true;
-    console.log('[SOCKET RESPONSE]', response);
-    if (response.success) {
-      toast.success(`Post ${mode === 'create' ? 'creato' : 'aggiornato'} con successo`);
-      onClose();
-    } else {
-      toast.error(response.error?.message || 'Errore generico dal server');
-    }
-  });
-
-  setTimeout(() => {
-    if (!callbackCalled) {
-      toast.error('Nessuna risposta dal server. Controlla la connessione o riprova.');
-    }
-  }, 3000);
-};
 
   return (
     <Modal onClose={onClose} className={styles['post-modal']}>
