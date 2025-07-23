@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import Modal from '../Modal/Modal';
 import CreatableSelect from 'react-select/creatable';
 import TiptapEditor from '../TiptapEditor/TiptapEditor';
@@ -22,7 +22,8 @@ export function PostModal({ mode, initialData = {}, onClose }) {
   const [imageFile, setImageFile] = useState(null);
 
   const socket = getSocket();
-
+  
+  const { user } = useContext(AuthContext);
 
   useEffect(() => {
     if (!socket) return;
@@ -39,7 +40,8 @@ export function PostModal({ mode, initialData = {}, onClose }) {
 
   const handleSubmit = async () => {
     console.log('[DEBUG] Cliccato Crea');
-    console.log('[DEBUG] JWT attuale dal localStorage:', localStorage.getItem('token'));
+    console.log('[DEBUG] user:', user);
+    console.log('[DEBUG] user.id valid:', user?.id?.length === 24)
 
     const plainText = content.replace(/<[^>]+>/g, '').trim();
     if (title.trim().length < 3) {
@@ -65,7 +67,8 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       publishDate: publishDate.getTime(),
       image: imageUrl,
       tags: tags.map(t => t.value),
-      userIds: []
+      // authorId: [user.id],
+      // userIds: [user.id]
     };
 
     if (!socket) {
@@ -79,17 +82,18 @@ export function PostModal({ mode, initialData = {}, onClose }) {
 
     let callbackCalled = false;
 
-    socket.emit(event, payload, response => {
-      callbackCalled = true;
-      console.log('[SOCKET RESPONSE]', response);
-      if (response.success) {
-        toast.success(`Post ${mode === 'create' ? 'creato' : 'aggiornato'} con successo`);
-        onClose();
-      } else {
-        console.error('[SOCKET ERROR]', response);
-        toast.error(response.error?.message || 'Errore generico dal server');
-      }
-    });
+    console.log('[DEBUG] Payload finale inviato a CREATE_POST:', JSON.stringify(payload, null, 2));
+
+    socket.emit('CREATE_POST', payload, (response) => {
+    callbackCalled = true;
+    console.log('[SOCKET RESPONSE]', response);
+    if (response?.success) {
+      toast.success('Post creato!');
+      onClose();
+    } else {
+      toast.error(response?.error?.message || 'Errore generico');
+    }
+  }); 
     
     setTimeout(() => {
       if (!callbackCalled) {

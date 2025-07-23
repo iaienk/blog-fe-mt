@@ -19,6 +19,7 @@ export function connectSocket() {
         }
       })(),
     }
+    
   });
   console.log('[SOCKET] Connesso al namespace:', socket.nsp);
 
@@ -47,4 +48,7 @@ export function connectSocket() {
 
 export function getSocket() {
   return socket;
+}
+if (typeof window !== 'undefined') {
+  window.getSocket = getSocket;
 }

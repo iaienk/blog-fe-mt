@@ -5,7 +5,7 @@ import { getSocket } from '../../socket';
 import styles from './ProfiloUtente.module.scss';
 import { uploadImageToCloudinary } from '../../utils/uploadImage';
 
-const PLACEHOLDER = '/images/avatar-placeholder.png';
+const PLACEHOLDER = 'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753049295/profilePlaceholder.webp';
 const socket = getSocket();
 
 export default function ProfiloUtente() {
