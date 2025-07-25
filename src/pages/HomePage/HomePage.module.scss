@@ -15,10 +15,12 @@
     font-size: 1.2rem;
   }
 
-  .immagine {
-    max-width: 100%;
-    height: 300px;
-  }
+.immagine {
+  max-width: 100%;
+  height: 300px;
+  display: block;
+  margin: 0 auto; // centra orizzontalmente
+}
 }
 .features {
   max-width: 900px;
