@@ -1,22 +1,30 @@
-import React, { useContext, useState } from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FiLogOut, FiUser, FiEdit } from 'react-icons/fi';
+import { useSelector, useDispatch } from 'react-redux';
 import styles from './Navbar.module.scss';
 import logo from '../../assets/logo.svg';
 import { ThemeContext } from '../../context/ThemeContext';
-import { AuthContext } from '../../context/AuthContext';
-import { PostModal } from '../PostModal/PostModal.jsx';  // aggiungi il path corretto al tuo PostModal
+import { PostModal } from '../PostModal/PostModal.jsx';
+import { userSelector, clearUser } from '../../reducers/user.slice.js';
+import { useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
   const location = useLocation();
-  const { theme, toggleTheme } = useContext(ThemeContext);
-  const { user, setUser } = useContext(AuthContext);
+  const dispatch = useDispatch();
+  const { theme, toggleTheme } = React.useContext(ThemeContext);
+
+  // Prendo l'user da Redux e considero "loggato" se c'è un accessToken
+  const user = useSelector(userSelector);
+  const isLoggedIn = Boolean(user.accessToken);
+  const navigate = useNavigate();
   const [modalOpen, setModalOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    setUser(null);
+    dispatch(clearUser());
+    navigate('/login');
   };
 
   return (
@@ -24,7 +32,11 @@ const Navbar = () => {
       <nav className={styles.navbar}>
         <div className={styles.logo}>
           <Link to="/">
-            <img src={logo} alt="The iaienk's Blog" className={styles.logoImg} />
+            <img
+              src={logo}
+              alt="The iaienk's Blog"
+              className={styles.logoImg}
+            />
           </Link>
         </div>
 
@@ -33,7 +45,7 @@ const Navbar = () => {
             <Link to="/">Home</Link>
           </li>
 
-          {user ? (
+          {isLoggedIn ? (
             <>
               <li>
                 <button
@@ -74,7 +86,10 @@ const Navbar = () => {
           )}
 
           <li>
-            <button onClick={toggleTheme} className={styles.themeToggle}>
+            <button
+              onClick={toggleTheme}
+              className={styles.themeToggle}
+            >
               {theme === 'light' ? '🌙' : '☀️'}
             </button>
           </li>

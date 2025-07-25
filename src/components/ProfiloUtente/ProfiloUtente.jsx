@@ -1,22 +1,25 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
-import { getSocket } from '../../socket';
+import { useSelector, useDispatch } from 'react-redux';
+import { userSelector, setUser, clearUser } from '../../reducers/user.slice';
+import { useSocketContext } from '../../context/SocketProvider';
 import styles from './ProfiloUtente.module.scss';
 import { uploadImageToCloudinary } from '../../utils/uploadImage';
 
-const PLACEHOLDER = 'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753049295/profilePlaceholder.webp';
-const socket = getSocket();
+const PLACEHOLDER =
+  'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753049295/profilePlaceholder.webp';
 
 export default function ProfiloUtente() {
-  const { user, setUser } = useContext(AuthContext);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const user = useSelector(userSelector);
+  const { socket, socketReady } = useSocketContext();
 
   const [username, setUsername] = useState(user?.username || '');
   const [avatar, setAvatar] = useState(user?.avatar || PLACEHOLDER);
   const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
   const [usernameDisponibile, setUsernameDisponibile] = useState(true);
   const [feedback, setFeedback] = useState('');
-  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -34,24 +37,23 @@ export default function ProfiloUtente() {
   }, [feedback]);
 
   useEffect(() => {
-    if (!user || username === user.username) return;
+    if (!socketReady || !isEditing || username === user.username) return;
     const timer = setTimeout(() => {
-      if (socket?.connected) {
-        socket.emit('checkUsername', username);
-      }
+      socket.emit('checkUsername', username);
     }, 500);
     return () => clearTimeout(timer);
-  }, [username, user, isEditing]);
+  }, [username, user.username, socket, socketReady, isEditing]);
 
   useEffect(() => {
-    if (!socket?.connected) return;
+    if (!socketReady || !socket) return;
 
     const onAvail = ({ available }) => setUsernameDisponibile(available);
-    const onUpdated = updated => {
-      setUser({ ...user, ...updated });
+    const onUpdated = (updated) => {
+      dispatch(setUser({ ...user, ...updated }));
       setFeedback('Profilo aggiornato con successo!');
     };
-    const onError = msg => setFeedback(msg || 'Errore durante l’aggiornamento.');
+    const onError = (msg) =>
+      setFeedback(msg || 'Errore durante l’aggiornamento.');
 
     socket.on('usernameAvailability', onAvail);
     socket.on('profileUpdated', onUpdated);
@@ -62,9 +64,9 @@ export default function ProfiloUtente() {
       socket.off('profileUpdated', onUpdated);
       socket.off('updateError', onError);
     };
-  }, [user, setUser]);
+  }, [socket, socketReady, dispatch, user]);
 
-  const handleAvatarChange = async e => {
+  const handleAvatarChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     try {
@@ -88,20 +90,23 @@ export default function ProfiloUtente() {
       const body = { username };
       if (nuovoAvatarUrl) body.avatar = nuovoAvatarUrl;
 
-      const res = await fetch('/user/profile', {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/user/profile`, {
         method: 'PATCH',
-        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.accessToken}`,
+          Authorization: `Bearer ${user.accessToken}`,
         },
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) throw new Error('Aggiornamento fallito');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[ProfiloUtente] PATCH failed:', errorText);
+        throw new Error('Aggiornamento fallito');
+      }
 
       const updated = await res.json();
-      setUser({ ...user, ...updated });
+      dispatch(setUser({ ...user, ...updated }));
       setFeedback('Profilo aggiornato con successo!');
     } catch (err) {
       console.error('[ProfiloUtente] updateError:', err);
@@ -118,11 +123,13 @@ export default function ProfiloUtente() {
   };
 
   if (!user) {
-    const goToLogin = () => navigate('/login');
     return (
       <div className={styles.containerProfilo}>
         <p>Devi effettuare il login per accedere al profilo.</p>
-        <button onClick={goToLogin} className={styles.loginButton}>
+        <button
+          onClick={() => navigate('/login')}
+          className={styles.loginButton}
+        >
           Vai al Login
         </button>
       </div>
@@ -131,7 +138,6 @@ export default function ProfiloUtente() {
 
   return (
     <div className={styles.containerProfilo}>
-      {/* Avatar */}
       <div className={styles.avatar}>
         <img src={avatar} alt="Avatar utente" />
         {isEditing && (
@@ -151,7 +157,7 @@ export default function ProfiloUtente() {
             <input
               type="text"
               value={username}
-              onChange={e => {
+              onChange={(e) => {
                 setUsername(e.target.value);
                 setFeedback('');
               }}
@@ -189,6 +195,16 @@ export default function ProfiloUtente() {
       </div>
 
       {feedback && <p className={styles.feedback}>{feedback}</p>}
+
+      <button
+        onClick={() => {
+          dispatch(clearUser());
+          navigate('/login');
+        }}
+        className={styles.logoutButton}
+      >
+        Logout
+      </button>
     </div>
   );
 }

@@ -1,18 +1,22 @@
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from '../Modal/Modal';
 import CreatableSelect from 'react-select/creatable';
 import TiptapEditor from '../TiptapEditor/TiptapEditor';
-import { getSocket } from '../../socket';
+import { useSocketContext } from '../../context/SocketProvider';
+import { useSelector } from 'react-redux';
+import { userSelector } from '../../reducers/user.slice.js';
 import { uploadImageToCloudinary } from '../../utils/uploadImage.js';
 import { toast } from 'react-toastify';
-import styles from './PostModal.module.scss';
 import { FiX, FiSave } from 'react-icons/fi';
-import { AuthContext } from '../../context/AuthContext';
+import styles from './PostModal.module.scss';
 
 export function PostModal({ mode, initialData = {}, onClose }) {
+  const { socket, ready } = useSocketContext();
+  const user = useSelector(userSelector);
+
   const [title, setTitle] = useState(initialData.title || '');
   const [content, setContent] = useState(initialData.content || '');
-  const [publishDate, setDate] = useState(
+  const [publishDate, setPublishDate] = useState(
     initialData.publishDate ? new Date(initialData.publishDate) : new Date()
   );
   const [tags, setTags] = useState(
@@ -21,45 +25,76 @@ export function PostModal({ mode, initialData = {}, onClose }) {
   const [availableTags, setAvailableTags] = useState([]);
   const [imageFile, setImageFile] = useState(null);
 
-  const socket = getSocket();
-  
-  const { user } = useContext(AuthContext);
-
+  // Carica i tag alla apertura della modal
   useEffect(() => {
-    if (!socket) return;
+    if (!socket || !ready) return;
     socket.emit(
       'GET_TAGS',
       { name: '', cursor: null, direction: 'next', limit: 50 },
       res => {
         if (res?.success) {
-          setAvailableTags(res.data.tags.map(t => ({ value: t, label: t })));
+          setAvailableTags(
+            res.data.tags.map(t => ({ value: t, label: t }))
+          );
+        } else {
+          console.error('Errore GET_TAGS:', res?.error);
         }
       }
     );
-  }, [socket]);
+  }, [socket, ready]);
+
+  // Ascolta broadcast POST_CREATED per CREATE_POST
+  useEffect(() => {
+    if (!socket) return;
+    const handlePostCreated = newPost => {
+      if (newPost.authorId === user.id) {
+        toast.success('Post creato!');
+        onClose();
+      }
+    };
+    socket.on('POST_CREATED', handlePostCreated);
+    return () => {
+      socket.off('POST_CREATED', handlePostCreated);
+    };
+  }, [socket, user.id, onClose]);
 
   const handleSubmit = async () => {
-    console.log('[DEBUG] Cliccato Crea');
-    console.log('[DEBUG] user:', user);
-    console.log('[DEBUG] user.id valid:', user?.id?.length === 24)
+  console.log('[DEBUG] handleSubmit chiamata');
 
-    const plainText = content.replace(/<[^>]+>/g, '').trim();
-    if (title.trim().length < 3) {
-      return toast.error('Titolo troppo corto (minimo 3 caratteri)');
-    }
-    if (plainText.length < 10) {
-      return toast.error('Contenuto troppo breve (minimo 10 caratteri)');
-    }
+  if (!socket || !ready) {
+    console.log('[DEBUG] Socket non pronto');
+    return toast.error(
+      'Connessione WebSocket non disponibile. Attendi qualche secondo e riprova.'
+    );
+  }
 
+  if (title.trim().length < 3) {
+    console.log('[DEBUG] Titolo troppo corto:', title);
+    return toast.error('Titolo troppo corto (min 3 caratteri)');
+  }
+
+  const plainText = content.replace(/<[^>]+>/g, '').trim();
+  console.log('[DEBUG] Contenuto plainText:', plainText);
+
+  if (plainText.length < 10) {
+    console.log('[DEBUG] Contenuto troppo breve:', plainText);
+    return toast.error('Contenuto troppo breve (min 10 caratteri)');
+  }
+
+  // se arrivi qui, sei passato
+  console.log('[DEBUG] Validazione superata, proseguo con submit');
+
+    // Upload immagine
     let imageUrl = initialData.image || '';
-    try {
-      if (imageFile) {
+    if (imageFile) {
+      try {
         imageUrl = await uploadImageToCloudinary(imageFile);
+      } catch (err) {
+        return toast.error('Upload immagine fallito: ' + err.message);
       }
-    } catch (err) {
-      return toast.error('Upload immagine fallito: ' + err.message);
     }
 
+    // Prepara payload coerente con spec
     const payload = {
       ...(mode === 'edit' && { postId: initialData.id }),
       title,
@@ -67,39 +102,23 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       publishDate: publishDate.getTime(),
       image: imageUrl,
       tags: tags.map(t => t.value),
-      // authorId: [user.id],
-      // userIds: [user.id]
+      // authorId: user.id,
+      // userIds: [user.id],
     };
 
-    if (!socket) {
-      console.error('[ERRORE] socket non inizializzato');
-      toast.error('Connessione non disponibile. Riprova più tardi.');
-      return;
-    }
+    const eventName = mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST';
 
-    const event = mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST';
-    console.log(`[DEBUG] Emit '${event}' con payload:`, payload);
+    console.log('[DEBUG] Emitting', eventName, payload);
 
-    let callbackCalled = false;
-
-    console.log('[DEBUG] Payload finale inviato a CREATE_POST:', JSON.stringify(payload, null, 2));
-
-    socket.emit('CREATE_POST', payload, (response) => {
-    callbackCalled = true;
-    console.log('[SOCKET RESPONSE]', response);
-    if (response?.success) {
-      toast.success('Post creato!');
-      onClose();
-    } else {
-      toast.error(response?.error?.message || 'Errore generico');
-    }
-  }); 
-    
-    setTimeout(() => {
-      if (!callbackCalled) {
-        toast.error('Nessuna risposta dal server. Controlla la connessione o riprova.');
+    socket.emit(eventName, payload, res => {
+      console.log('[DEBUG] Emitting', eventName, payload);
+      if (res?.success) {
+        toast.success(mode === 'create' ? 'Post creato!' : 'Post aggiornato!');
+        onClose();
+      } else {
+        toast.error(res?.error?.message || 'Errore sul server');
       }
-    }, 3000);
+    });
   };
 
   return (
@@ -124,8 +143,8 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           <span>Data di pubblicazione</span>
           <input
             type="date"
-            value={publishDate.toISOString().substr(0, 10)}
-            onChange={e => setDate(new Date(e.target.value))}
+            value={publishDate.toISOString().slice(0, 10)}
+            onChange={e => setPublishDate(new Date(e.target.value))}
           />
         </label>
         <label className={styles['post-modal__field']}>
@@ -152,14 +171,17 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           className={`${styles.btn} ${styles['btn--secondary']}`}
           onClick={onClose}
         >
-          <FiX className={styles.icon} />
-          Annulla
+          <FiX className={styles.icon} /> Annulla
         </button>
         <button
           className={`${styles.btn} ${styles['btn--primary']}`}
-          onClick={handleSubmit}
+          onClick={() => {
+              console.log('CLICK BUTTON');
+              handleSubmit();
+            }}
+            disabled={!ready}
         >
-          <FiSave className={styles.icon} />
+          <FiSave className={styles.icon} />{' '}
           {mode === 'create' ? 'Crea' : 'Aggiorna'}
         </button>
       </div>

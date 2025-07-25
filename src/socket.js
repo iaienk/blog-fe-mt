@@ -4,12 +4,12 @@ let socket = null;
 
 export function connectSocket() {
   if (socket) {
-    socket.disconnect(); // disconnetti socket precedente, se esiste
+    socket.disconnect();
   }
 
-  socket = io('/multiuserblog', {
-    path: '/socket.io',
-    withCredentials: true,
+  socket = io('https://todo-pp.longwavestudio.dev/multiuserblog', {
+    
+    transports: ['websocket'],
     auth: {
       token: (() => {
         try {

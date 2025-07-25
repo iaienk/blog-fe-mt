@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { AuthContext } from './AuthContext';
-import { connectSocket } from '../socket';
+import React, { createContext, useState, useEffect } from 'react';
+
+export const AuthContext = createContext({
+  user: null,
+  setUser: () => {}
+});
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -11,12 +14,11 @@ export function AuthProvider({ children }) {
     }
   });
 
-  // ✅ Salva user e token localmente + connessione socket
+  // Solo persistenza, niente socket qui
   useEffect(() => {
     if (user?.accessToken) {
       localStorage.setItem('user', JSON.stringify(user));
-      localStorage.setItem('token', user.accessToken);  // 🔑 utile anche altrove se serve
-      connectSocket(user.accessToken);                  // ✅ passa token attivo
+      localStorage.setItem('token', user.accessToken);
     } else {
       localStorage.removeItem('user');
       localStorage.removeItem('token');

@@ -1,11 +1,12 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../../context/AuthContext';
+import { useDispatch } from 'react-redux';
+import { setUser } from '../../reducers/user.slice';
 import styles from './LoginForm.module.scss';
 
 export default function LoginForm() {
   const navigate = useNavigate();
-  const { setUser } = useContext(AuthContext);
+  const dispatch = useDispatch();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,6 +14,8 @@ export default function LoginForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     try {
       // 1) Login…
       const loginRes = await fetch('/user/login', {
@@ -23,7 +26,7 @@ export default function LoginForm() {
       });
       if (!loginRes.ok) throw new Error('Login fallito');
       const userData = await loginRes.json();
-      // userData = { id, email, accessToken, refreshToken }
+      // { id, email, accessToken, refreshToken }
 
       // 2) “Maschero” il GET /user/profile via PATCH vuoto
       const profiloRes = await fetch('/user/profile', {
@@ -37,14 +40,16 @@ export default function LoginForm() {
       });
       if (!profiloRes.ok) throw new Error('Impossibile recuperare il profilo');
       const profilo = await profiloRes.json();
-      // profilo = { message, id, email, username, avatar }
+      // { message, id, email, username, avatar }
 
-      // 3) Merge token + profilo ed effettua il setUser UNA SOLA VOLTA
+      // 3) Merge token + profilo ed effettua il dispatch di setUser
       const fullUser = { 
-        ...userData,    // contiene accessToken & refreshToken 
-        ...profilo      // contiene username, avatar, message…
+        ...userData,    // accessToken & refreshToken
+        ...profilo      // username, avatar, message…
       };
-      setUser(fullUser);
+      dispatch(setUser(fullUser));
+
+      // 4) Naviga al profilo
       navigate('/profile');
     } catch (err) {
       console.error('Login error:', err);
@@ -54,36 +59,36 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className={styles.form}>
-  <h2>Accedi</h2>
-  {error && <p className={styles.errorMsg}>{error}</p>}
+      <h2>Accedi</h2>
+      {error && <p className={styles.errorMsg}>{error}</p>}
 
-  <div className={styles.field}>
-    <input
-      type="email"
-      placeholder="Email"
-      value={email}
-      onChange={e => setEmail(e.target.value)}
-      required
-    />
-    <p className={styles.placeholderMsg}> </p>
-  </div>
+      <div className={styles.field}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          required
+        />
+        <p className={styles.placeholderMsg}> </p>
+      </div>
 
-  <div className={styles.field}>
-    <input
-      type="password"
-      placeholder="Password"
-      value={password}
-      onChange={e => setPassword(e.target.value)}
-      required
-    />
-    <p className={styles.placeholderMsg}> </p>
-  </div>
+      <div className={styles.field}>
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          required
+        />
+        <p className={styles.placeholderMsg}> </p>
+      </div>
 
-  <button type="submit">Login</button>
+      <button type="submit">Login</button>
 
-  <div className={styles.footerText}>
-    <a href="/recupera-password">Hai dimenticato la password?</a>
-  </div>
-</form>
+      <div className={styles.footerText}>
+        <a href="/recupera-password">Hai dimenticato la password?</a>
+      </div>
+    </form>
   );
 }
