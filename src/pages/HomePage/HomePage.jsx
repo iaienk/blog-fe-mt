@@ -1,35 +1,39 @@
-import React from 'react';
-import styles from './HomePage.module.scss';
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchPosts,
+  selectAllPosts,
+  selectPostsStatus,
+  selectPostsError,
+} from "../../reducers/post.slice";
+import PostCard from "../../components/PostCard/PostCard";
+import styles from "./HomePage.module.scss";
 
 export default function HomePage() {
+  const dispatch = useDispatch();
+  const posts  = useSelector(selectAllPosts);
+  const status = useSelector(selectPostsStatus);
+  const error  = useSelector(selectPostsError);
+
+  console.log("🏷️ HomePage render, status:", status, "posts:", posts.length);
+
+  useEffect(() => {
+    console.log("➡️ useEffect: status è", status);
+    if (status === "idle") {
+      console.log("🎬 dispatch(fetchPosts)");
+      dispatch(fetchPosts());
+    }
+  }, [dispatch, status]);
+
+  if (status === "loading") return <p>Caricamento post…</p>;
+  if (status === "failed")  return <p>Errore: {error}</p>;
+  if (status === "succeeded" && posts.length === 0) return <p>Nessun post</p>;
+
   return (
-    <div className={styles.home}>
-      <h1>Blog in costruzione 🚧</h1>
-      <p>Stiamo preparando qualcosa di interessante, torna presto!</p>
-      <img
-        src="/assets/work-in-progress.svg"
-        alt="Lavori in corso"
-        className={styles.immagine}
-      />
-      <section className={styles.features}>
-        <h2>Funzionalità già implementate</h2>
-        <ul>
-          <li><strong>Registrazione</strong> con validazione in tempo reale</li>
-          <li><strong>Login</strong> con persistenza e protezione token</li>
-          <li><strong>Logout</strong> sicuro e completo</li>
-          <li><strong>Modifica profilo utente</strong>:
-            <ul>
-              <li>Modifica username con verifica disponibilità</li>
-              <li>Modifica avatar con upload su Cloudinary</li>
-            </ul>
-          </li>
-          <li><strong>Gestione immagini</strong> integrata con Cloudinary</li>
-          <li><strong>Modale post</strong> per inserimento e modifica dei post</li>
-          <li><strong>Editor avanzato</strong> con supporto rich text (TipTap)</li>
-          <li><strong>Navbar dinamica</strong> in base allo stato utente</li>
-          <li><strong>Placeholder Home</strong> in attesa dei primi contenuti</li>
-        </ul>
-      </section>
+    <div className={styles.list}>
+      {posts.map((p) => (
+        <PostCard post={p} key={p.id} />
+      ))}
     </div>
   );
 }

@@ -1,53 +1,45 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import * as postService from "../services/post.service";
 
-// Async thunk per il fetch di tutti i post dal backend usando fetch nativo
 export const fetchPosts = createAsyncThunk(
-  'posts/fetchPosts',
-  async (_, { rejectWithValue }) => {
+  "posts/fetchAll",
+  async (_, thunkAPI) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/posts`);
-      if (!response.ok) {
-        const errorData = await response.json();
-        return rejectWithValue(errorData);
-      }
-      const data = await response.json();
-      return data; // supponendo array di post
+      const posts = await postService.getPosts();
+      return posts;
     } catch (err) {
-      return rejectWithValue(err.message);
+      return thunkAPI.rejectWithValue(err.message);
     }
   }
 );
 
-const postsSlice = createSlice({
-  name: 'posts',
+const postSlice = createSlice({
+  name: "posts",
   initialState: {
     items: [],
-    status: 'idle',   // 'idle' | 'loading' | 'succeeded' | 'failed'
-    error: null
+    status: "idle",   // 'idle' | 'loading' | 'succeeded' | 'failed'
+    error: null,
   },
-  reducers: {
-    // eventualmente altri reducer locali
-  },
-  extraReducers: builder => {
+  reducers: {},
+  extraReducers: (builder) => {
     builder
-      .addCase(fetchPosts.pending, state => {
-        state.status = 'loading';
+      .addCase(fetchPosts.pending, (state) => {
+        state.status = "loading";
         state.error = null;
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
-        state.status = 'succeeded';
+        state.status = "succeeded";
         state.items = action.payload;
       })
       .addCase(fetchPosts.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload;
+        state.status = "failed";
+        state.error = action.payload ?? action.error.message;
       });
-  }
+  },
 });
 
-// Selector opzionali
-export const selectAllPosts = state => state.posts.items;
-export const selectPostsStatus = state => state.posts.status;
-export const selectPostsError = state => state.posts.error;
+export const selectAllPosts    = (state) => state.posts.items;
+export const selectPostsStatus = (state) => state.posts.status;
+export const selectPostsError  = (state) => state.posts.error;
 
-export default postsSlice.reducer;
+export default postSlice.reducer;

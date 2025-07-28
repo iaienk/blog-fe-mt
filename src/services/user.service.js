@@ -1,4 +1,4 @@
-// src/services/user.service.js
+
 const BASE_URL = import.meta.env.VITE_API_URL;
 
 
@@ -27,3 +27,4 @@ export async function updateUserProfile(formData) {
 
   return response.json();
 }
+
