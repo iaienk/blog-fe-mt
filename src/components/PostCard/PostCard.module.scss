@@ -1,8 +1,7 @@
+@import '../../styles/variables';  // dove definisci :root e [data-theme="dark"]    // dove c’è @mixin card-style
+
 .card {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-  padding: 1rem;
+  @include card-style;            // applica bg, border, shadow, border-radius, padding
   margin-bottom: 2rem;
   max-width: 900px;
   width: 100%;
@@ -24,7 +23,7 @@
 
 .name {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
 }
 
 .image {
@@ -39,15 +38,16 @@
 .title {
   margin: 0.5rem 0;
   font-size: 1.2rem;
+  color: var(--text-color);
 }
 
 .content {
-  color: #444;
+  color: var(--text-color);
 }
 
 .footer {
   margin-top: 1rem;
   font-size: 0.85rem;
-  text-align: right; 
-  color: #666; 
+  text-align: right;
+  color: var(--secondary-color);
 }
