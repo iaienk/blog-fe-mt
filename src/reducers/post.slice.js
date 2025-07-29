@@ -29,7 +29,14 @@ const postSlice = createSlice({
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
         state.status = "succeeded";
-        state.items = action.payload;
+        // Mappiamo esplicitamente ogni post per garantire la proprietà `image`
+        state.items = action.payload.map((p) => ({
+          // manteniamo tutte le altre proprietà
+          ...p,
+          // se il BE restituisce `image`, lo usiamo; altrimenti proviamo `imageUrl`;
+          // in mancanza di entrambi, fallback a stringa vuota o placeholder
+          image: p.image || p.imageUrl || "",
+        }));
       })
       .addCase(fetchPosts.rejected, (state, action) => {
         state.status = "failed";

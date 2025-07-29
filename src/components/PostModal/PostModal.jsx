@@ -106,7 +106,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       // userIds: [user.id],
     };
 
-    const eventName = mode === 'create' ? 'CREATE_POST' : 'UPDATE_POST';
+    const eventName = mode === 'create' ? 'createPost' : 'UPDATE_POST';
 
     console.log('[DEBUG] Emitting', eventName, payload);
 

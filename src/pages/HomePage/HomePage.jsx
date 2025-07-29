@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   fetchPosts,
@@ -25,13 +25,23 @@ export default function HomePage() {
     }
   }, [dispatch, status]);
 
-  if (status === "loading") return <p>Caricamento post…</p>;
-  if (status === "failed")  return <p>Errore: {error}</p>;
-  if (status === "succeeded" && posts.length === 0) return <p>Nessun post</p>;
+  // Ordina per data discendente: trasformo publishDate in millisecondi
+  const sortedPosts = useMemo(() => {
+    return [...posts].sort((a, b) => {
+      const timeA = new Date(a.publishDate).getTime();
+      const timeB = new Date(b.publishDate).getTime();
+      return timeB - timeA;  // post più recente (timeB grande) prima
+    });
+  }, [posts]);
+
+  if (status === "loading")               return <p>Caricamento post…</p>;
+  if (status === "failed")                return <p>Errore: {error}</p>;
+  if (status === "succeeded" && posts.length === 0)
+                                           return <p>Nessun post</p>;
 
   return (
     <div className={styles.list}>
-      {posts.map((p) => (
+      {sortedPosts.map((p) => (
         <PostCard post={p} key={p.id} />
       ))}
     </div>

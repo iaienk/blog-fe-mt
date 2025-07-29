@@ -28,10 +28,12 @@
 }
 
 .image {
+  display: block;
   width: 100%;
+  max-width: 600px;
   height: auto;
   border-radius: 4px;
-  margin: 1rem 0;
+  margin: 1rem auto;
 }
 
 .title {
@@ -41,4 +43,11 @@
 
 .content {
   color: #444;
+}
+
+.footer {
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  text-align: right; 
+  color: #666; 
 }
