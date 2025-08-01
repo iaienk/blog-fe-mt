@@ -115,12 +115,6 @@
     }
   }
 
-  .feedback {
-    font-size: 0.9rem;
-    text-align: center;
-    color: var(--text-color);
-  }
-
   .loginButton {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -162,4 +156,32 @@
   &:hover {
     background-color: #c0392b;
   }
+}
+
+.actions button:disabled {
+  background-color: #ccc;    // sfondo grigio chiaro
+  color: #666;               // testo più scuro/grigio
+  cursor: default;           // cursor a freccia
+}
+
+.actions button:disabled:hover {
+  background-color: #ccc;
+}
+
+.saveBtn {
+  background-color: var(--primary-color);
+  // …altre regole normali…
+  &:disabled {
+    background-color: #ccc;
+    color: #666;
+    cursor: default;
+  }
+}
+
+.feedback {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--accent-color);
+  margin: 0.75rem 0;
+  font-weight: 500;
 }

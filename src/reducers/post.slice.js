@@ -1,12 +1,13 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as postService from "../services/post.service";
 
+// Ora fetchPosts può ricevere parametri { page, limit }
 export const fetchPosts = createAsyncThunk(
   "posts/fetchAll",
-  async (_, thunkAPI) => {
+  async (params, thunkAPI) => {
     try {
-      const posts = await postService.getPosts();
-      return posts;
+      const result = await postService.getPosts(params);
+      return result;
     } catch (err) {
       return thunkAPI.rejectWithValue(err.message);
     }
@@ -29,13 +30,21 @@ const postSlice = createSlice({
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
         state.status = "succeeded";
-        // Mappiamo esplicitamente ogni post per garantire la proprietà `image`
-        state.items = action.payload.map((p) => ({
-          // manteniamo tutte le altre proprietà
+        // action.payload potrebbe essere un array o un oggetto paginato
+        let postsArray = [];
+        if (Array.isArray(action.payload)) {
+          postsArray = action.payload;
+        } else if (action.payload.docs && Array.isArray(action.payload.docs)) {
+          postsArray = action.payload.docs;
+        } else if (action.payload.data && Array.isArray(action.payload.data)) {
+          postsArray = action.payload.data;
+        } else if (action.payload.posts && Array.isArray(action.payload.posts)) {
+          postsArray = action.payload.posts;
+        }
+        // mappatura per garantire sempre il campo image
+        state.items = postsArray.map(p => ({
           ...p,
-          // se il BE restituisce `image`, lo usiamo; altrimenti proviamo `imageUrl`;
-          // in mancanza di entrambi, fallback a stringa vuota o placeholder
-          image: p.image || p.imageUrl || "",
+          image: p.image || p.imageUrl || ""
         }));
       })
       .addCase(fetchPosts.rejected, (state, action) => {

@@ -11,33 +11,31 @@ import styles from "./HomePage.module.scss";
 
 export default function HomePage() {
   const dispatch = useDispatch();
-  const posts  = useSelector(selectAllPosts);
-  const status = useSelector(selectPostsStatus);
-  const error  = useSelector(selectPostsError);
-
-  console.log("🏷️ HomePage render, status:", status, "posts:", posts.length);
+  const posts    = useSelector(selectAllPosts);
+  const status   = useSelector(selectPostsStatus);
+  const error    = useSelector(selectPostsError);
 
   useEffect(() => {
-    console.log("➡️ useEffect: status è", status);
-    if (status === "idle") {
-      console.log("🎬 dispatch(fetchPosts)");
-      dispatch(fetchPosts());
-    }
+   if (status === "idle") {
+     dispatch(fetchPosts({ limit: 100 }));
+   }
+    
   }, [dispatch, status]);
 
-  // Ordina per data discendente: trasformo publishDate in millisecondi
-  const sortedPosts = useMemo(() => {
-    return [...posts].sort((a, b) => {
-      const timeA = new Date(a.publishDate).getTime();
-      const timeB = new Date(b.publishDate).getTime();
-      return timeB - timeA;  // post più recente (timeB grande) prima
-    });
-  }, [posts]);
+  const sortedPosts = useMemo(
+    () =>
+      [...posts].sort(
+        (a, b) =>
+          new Date(b.publishDate).getTime() -
+          new Date(a.publishDate).getTime()
+      ),
+    [posts]
+  );
 
-  if (status === "loading")               return <p>Caricamento post…</p>;
-  if (status === "failed")                return <p>Errore: {error}</p>;
+  if (status === "loading")             return <p>Caricamento post…</p>;
+  if (status === "failed")              return <p>Errore: {error}</p>;
   if (status === "succeeded" && posts.length === 0)
-                                           return <p>Nessun post</p>;
+                                         return <p>Nessun post</p>;
 
   return (
     <div className={styles.list}>

@@ -1,112 +1,107 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate }               from 'react-router-dom';
+import { useSelector, useDispatch }  from 'react-redux';
 import { userSelector, setUser, clearUser } from '../../reducers/user.slice';
-import { useSocketContext } from '../../context/SocketProvider';
-import PostCard from '../PostCard/PostCard';
-import styles from './ProfiloUtente.module.scss';
-import { uploadImageToCloudinary } from '../../utils/uploadImage';
 import {
   fetchPosts,
   selectAllPosts,
   selectPostsStatus
 } from '../../reducers/post.slice';
+import { useSocketContext }          from '../../context/SocketProvider';
+import PostCard                      from '../PostCard/PostCard';
+import styles                        from './ProfiloUtente.module.scss';
+import { uploadImageToCloudinary }   from '../../utils/uploadImage';
 
 const PLACEHOLDER =
   'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753049295/profilePlaceholder.webp';
 
 export default function ProfiloUtente() {
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const user = useSelector(userSelector);
-  const { socket, socketReady } = useSocketContext();
+  const dispatch    = useDispatch();
+  const navigate    = useNavigate();
+  const user        = useSelector(userSelector);
+  const allPosts    = useSelector(selectAllPosts);
+  const postsStatus = useSelector(selectPostsStatus);
+  const { socket, ready } = useSocketContext();
 
-  const [username, setUsername] = useState(user?.username || '');
-  const [avatar, setAvatar] = useState(user?.avatar || PLACEHOLDER);
-  const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
-  const [usernameDisponibile, setUsernameDisponibile] = useState(true);
-  const [feedback, setFeedback] = useState('');
-  const [isEditing, setIsEditing] = useState(false);
-  const allPosts = useSelector(selectAllPosts);
-  const userPosts = allPosts.filter(p => p.authorId === user?.id);
-  const postsStatus= useSelector(selectPostsStatus);
-
-    useEffect(() => {
+  // 1) Carica i post (fino a 100)
+  useEffect(() => {
     if (postsStatus === 'idle') {
-      dispatch(fetchPosts());
+      dispatch(fetchPosts({ limit: 100 }));
     }
   }, [postsStatus, dispatch]);
 
-    const sortedUserPosts = useMemo(() => {
-    return [...userPosts].sort((a, b) => {
-      const tA = new Date(a.publishDate).getTime();
-      const tB = new Date(b.publishDate).getTime();
-      return tB - tA;
-    });
-  }, [userPosts]);
-  
+  // 2) Filtra e ordina i post dell'utente
+  const sortedUserPosts = useMemo(() => {
+    if (!user) return [];
+    return allPosts
+      .filter(p => p.authorId === user.id)
+      .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
+  }, [allPosts, user]);
+
+  // 3) Stati locali
+  const [username, setUsername]             = useState(user?.username || '');
+  const [avatar, setAvatar]                 = useState(user?.avatar || PLACEHOLDER);
+  const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
+  const [usernameDisponibile, setUsernameDisponibile] = useState(true);
+  const [feedback, setFeedback]             = useState('');
+  const [isEditing, setIsEditing]           = useState(false);
+
+  // serve per abilitare/disabilitare “Salva”
+  const hasChanges =
+    username !== user?.username ||
+    !!nuovoAvatarUrl;
+
+  // 4) Sincronizza i campi quando cambia l'user
+  //    → ho rimosso il setFeedback('') per non cancellare il messaggio di conferma
   useEffect(() => {
     if (!user) return;
     setUsername(user.username);
     setAvatar(user.avatar || PLACEHOLDER);
-    setIsEditing(false);
+    setUsernameDisponibile(true);
+    // setFeedback('');   ← RIMOSSO
+    setNuovoAvatarUrl(null);
   }, [user]);
 
-  
-
+  // 5) Pulisce il feedback dopo 2s se è il messaggio standard
   useEffect(() => {
-    let timeoutId;
     if (feedback === 'Profilo aggiornato con successo!') {
-      timeoutId = setTimeout(() => setFeedback(''), 2000);
+      const t = setTimeout(() => setFeedback(''), 2000);
+      return () => clearTimeout(t);
     }
-    return () => timeoutId && clearTimeout(timeoutId);
   }, [feedback]);
 
+  // 6) Debounce + emit con ack
   useEffect(() => {
-    let timeoutId;
-    if (socketReady && isEditing && username !== user.username) {
-      timeoutId = setTimeout(() => socket.emit('checkUsername', username), 500);
+    if (!ready || !socket) return;
+    if (!isEditing || username === user.username) {
+      setUsernameDisponibile(true);
+      return;
     }
-    return () => timeoutId && clearTimeout(timeoutId);
-  }, [username, user.username, socket, socketReady, isEditing]);
+    const t = setTimeout(() => {
+      socket.emit('checkUsername', username, isAvailable => {
+        setUsernameDisponibile(!!isAvailable);
+      });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [socket, ready, isEditing, username, user.username]);
 
-  useEffect(() => {
-    if (!socketReady || !socket) return;
-    const onAvail = ({ available }) => setUsernameDisponibile(available);
-    const onUpdated = updated => {
-      dispatch(setUser({ ...user, ...updated }));
-      setFeedback('Profilo aggiornato con successo!');
-    };
-    const onError = msg => setFeedback(msg || 'Errore durante l’aggiornamento.');
-
-    socket.on('usernameAvailability', onAvail);
-    socket.on('profileUpdated', onUpdated);
-    socket.on('updateError', onError);
-
-    return () => {
-      socket.off('usernameAvailability', onAvail);
-      socket.off('profileUpdated', onUpdated);
-      socket.off('updateError', onError);
-    };
-  }, [socket, socketReady, dispatch, user]);
-
+  // Upload avatar
   const handleAvatarChange = async e => {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      setFeedback('Caricamento avatar in corso…');
       const url = await uploadImageToCloudinary(file);
       setNuovoAvatarUrl(url);
       setAvatar(url);
-      setFeedback('');
     } catch (err) {
       console.error('[ProfiloUtente] uploadError:', err);
       setFeedback('Errore durante l’upload dell’avatar');
     }
   };
 
+  // 7) Salva profilo con delay sulla chiusura del form
   const handleSalva = async () => {
-    if (!usernameDisponibile) return setFeedback('Username non disponibile!');
+    if (!usernameDisponibile || !hasChanges) return;
     try {
       const body = { username };
       if (nuovoAvatarUrl) body.avatar = nuovoAvatarUrl;
@@ -121,22 +116,27 @@ export default function ProfiloUtente() {
           body: JSON.stringify(body),
         }
       );
-      if (!res.ok) throw new Error('Aggiornamento fallito');
+      if (!res.ok) throw new Error();
       const updated = await res.json();
       dispatch(setUser({ ...user, ...updated }));
+      // setto il feedback
       setFeedback('Profilo aggiornato con successo!');
-    } catch (err) {
-      console.error('[ProfiloUtente] updateError:', err);
-      setFeedback(err.message);
+      // chiudo la modalità editing **dopo** 1 secondo
+      setIsEditing(false);
+    } catch {
+      setFeedback('Errore durante il salvataggio');
+      setTimeout(() => setFeedback(''), 2000);
     }
   };
 
+  // Annulla modifica
   const handleAnnulla = () => {
     setUsername(user.username);
     setAvatar(user.avatar || PLACEHOLDER);
     setNuovoAvatarUrl(null);
     setFeedback('');
     setIsEditing(false);
+    setUsernameDisponibile(true);
   };
 
   return (
@@ -169,14 +169,17 @@ export default function ProfiloUtente() {
                 <input
                   type="text"
                   value={username}
-                  onChange={e => { setUsername(e.target.value); setFeedback(''); }}
+                  onChange={e => {
+                    setUsername(e.target.value);
+                    setFeedback('');
+                  }}
                 />
                 {username !== user.username && (
-                  <span
-                    className={
-                      usernameDisponibile ? styles.disponibile : styles.nonDisponibile
-                    }
-                  >
+                  <span className={
+                    usernameDisponibile
+                      ? styles.disponibile
+                      : styles.nonDisponibile
+                  }>
                     {usernameDisponibile
                       ? 'Username disponibile ✅'
                       : 'Username non disponibile ❌'}
@@ -188,20 +191,30 @@ export default function ProfiloUtente() {
             )}
           </div>
 
+          {/* feedback */}
+          {feedback && (
+            <p className={styles.feedback}>{feedback}</p>
+          )}
+
           <div className={styles.actions}>
             {!isEditing ? (
-              <button onClick={() => setIsEditing(true)}>Modifica profilo</button>
+              <button onClick={() => setIsEditing(true)}>
+                Modifica profilo
+              </button>
             ) : (
               <>
-                <button onClick={handleSalva}>Salva modifiche</button>
+                <button
+                  onClick={handleSalva}
+                  disabled={!hasChanges || !usernameDisponibile}
+                >
+                  Salva modifiche
+                </button>
                 <button onClick={handleAnnulla} className={styles.secondary}>
                   Annulla
                 </button>
               </>
             )}
           </div>
-
-          {feedback && <p className={styles.feedback}>{feedback}</p>}
 
           <button
             onClick={() => {
@@ -212,25 +225,19 @@ export default function ProfiloUtente() {
           >
             Logout
           </button>
-
         </>
       )}
-          {/* Sezione post sotto profilo e logout */}
+
+      {/* lista post dell'utente */}
       <div className={styles.postsList}>
         <h3>I tuoi post</h3>
-
         {postsStatus === 'loading' && <p>Caricamento post…</p>}
-
-        {postsStatus === 'succeeded' && sortedUserPosts.length > 0 && (
-          sortedUserPosts.map(post => (
-            <PostCard key={post.id} post={post} />
-          ))
-        )}
-
+        {postsStatus === 'succeeded' && sortedUserPosts.length > 0 &&
+          sortedUserPosts.map(post => <PostCard key={post.id} post={post} />)
+        }
         {postsStatus === 'succeeded' && sortedUserPosts.length === 0 && (
           <p>Non hai ancora creato post.</p>
         )}
-
         {postsStatus === 'failed' && <p>Errore nel caricamento dei post.</p>}
       </div>
     </div>
