@@ -23,7 +23,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
   const [title, setTitle] = useState(initialData.title || '');
   const [content, setContent] = useState(initialData.content || '');
   const [selectedTags, setSelectedTags] = useState(
-    (initialData.tags || []).map(t => ({ value: t, label: t }))
+    (initialData.tags || []).map(t => ({ value: t, label: `#${t}` }))
   );
   const [tagOptions, setTagOptions] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(false);
@@ -47,7 +47,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
        .then(data => {
          const list = Array.isArray(data.tags) ? data.tags : [];
          const sorted = [...list].sort((a, b) => a.localeCompare(b));
-         setTagOptions(sorted.map(tag => ({ value: tag, label: tag })));
+         setTagOptions(sorted.map(tag => ({ value: tag, label: `#${tag}` })));
        })
        .catch(err => {
          console.error('Errore getTags:', err);
@@ -156,7 +156,13 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           isMulti
           options={tagOptions}
           value={selectedTags}
-          onChange={setSelectedTags}
+          onChange={(newValue, actionMeta) => {
+            setSelectedTags(newValue);
+            // se hai selezionato un’opzione o ne hai creata una, resetta l’input
+            if (actionMeta.action === 'select-option' || actionMeta.action === 'create-option') {
+              setInputValue('');
+            }
+          }}
           inputValue={inputValue}
           onInputChange={(value, { action }) => {
             if (action === 'input-change') {
