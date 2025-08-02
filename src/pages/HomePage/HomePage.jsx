@@ -9,25 +9,28 @@ import {
 } from "../../reducers/post.slice";
 import PostCard from "../../components/PostCard/PostCard";
 import DetailPostPage from "../../components/DetailPostPage/DetailPostPage";
+import { PostModal } from "../../components/PostModal/PostModal";
 import styles from "./HomePage.module.scss";
 
 export default function HomePage() {
   const dispatch = useDispatch();
-  const posts  = useSelector(selectAllPosts);
-  const status = useSelector(selectPostsStatus);
-  const error  = useSelector(selectPostsError);
+  const posts    = useSelector(selectAllPosts);
+  const status   = useSelector(selectPostsStatus);
+  const error    = useSelector(selectPostsError);
 
-  // Stato per la modal di dettaglio
+  // per aprire il detail modal
   const [detailPost, setDetailPost] = useState(null);
+  // per aprire il create/edit modal
+  const [editingPost, setEditingPost] = useState(null);
 
-  // Carica i post al mount
+  // Carica i post al mount o quando lo status torna idle
   useEffect(() => {
     if (status === "idle") {
       dispatch(fetchPosts({ limit: 100 }));
     }
   }, [dispatch, status]);
 
-  // Ordinamento più recente → più vecchio
+  // Ordina post per data di pubblicazione (più recente → più vecchio)
   const sortedPosts = useMemo(
     () =>
       [...posts].sort(
@@ -38,38 +41,52 @@ export default function HomePage() {
     [posts]
   );
 
-  // Apre la modal di dettaglio
+  // Handlers
   const handleViewDetail = (post) => {
     setDetailPost(post);
   };
 
-  // Chiude la modal e ricarica i post
+  // chiude TUTTE le modal e ricarica i post
   const handleCloseModal = () => {
     setDetailPost(null);
-    // Ricarica i post dal server
+    setEditingPost(null);
     dispatch(fetchPosts({ limit: 100 }));
   };
 
-  // Stati di caricamento / errore
+  // Stati di caricamento / errore / vuoto
   if (status === "loading") return <p>Caricamento post…</p>;
   if (status === "failed")  return <p>Errore: {error}</p>;
-  if (status === "succeeded" && posts.length === 0)
-    return <p>Nessun post</p>;
+  if (status === "succeeded" && posts.length === 0) return <p>Nessun post</p>;
 
   return (
-    <div className={styles.list}>
-      {sortedPosts.map((p) => (
-        <PostCard
-          key={p.id}
-          post={p}
-          onViewDetail={handleViewDetail}
-        />
-      ))}
+    <div className={styles.container}>
+      {/* Navbar già gestisce "Nuovo Post" */}
 
-      {/* Modal di dettaglio */}
+      {/* Lista dei post */}
+      <div className={styles.list}>
+        {sortedPosts.map((p) => (
+          <PostCard
+            key={p.id}
+            post={p}
+            onViewDetail={handleViewDetail}
+            onEdit={(post) => setEditingPost(post)}
+          />
+        ))}
+      </div>
+
+      {/* Detail Modal */}
       {detailPost && (
         <DetailPostPage
           post={detailPost}
+          onClose={handleCloseModal}
+        />
+      )}
+
+      {/* Create/Edit Modal */}
+      {editingPost && (
+        <PostModal
+          mode={editingPost.id ? "edit" : "create"}
+          initialData={editingPost}
           onClose={handleCloseModal}
         />
       )}

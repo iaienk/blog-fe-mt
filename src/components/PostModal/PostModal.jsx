@@ -3,22 +3,20 @@ import Modal from '../Modal/Modal';
 import CreatableSelect from 'react-select/creatable';
 import TiptapEditor from '../TiptapEditor/TiptapEditor';
 import { useSocketContext } from '../../context/SocketProvider';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch  } from 'react-redux';
 import { userSelector } from '../../reducers/user.slice.js';
 import { uploadImageToCloudinary } from '../../utils/uploadImage.js';
 import { toast } from 'react-toastify';
 import { FiX, FiSave } from 'react-icons/fi';
 import styles from './PostModal.module.scss';
+import { fetchPosts } from '../../reducers/post.slice';
 
 export function PostModal({ mode, initialData = {}, onClose }) {
   const { socket, ready } = useSocketContext();
   const user = useSelector(userSelector);
-
+  const dispatch = useDispatch();
   const [title, setTitle] = useState(initialData.title || '');
   const [content, setContent] = useState(initialData.content || '');
-  const [publishDate, setPublishDate] = useState(
-    initialData.publishDate ? new Date(initialData.publishDate) : new Date()
-  );
   const [tags, setTags] = useState(
     (initialData.tags || []).map(t => ({ value: t, label: t }))
   );
@@ -33,9 +31,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       { name: '', cursor: null, direction: 'next', limit: 50 },
       res => {
         if (res?.success) {
-          setAvailableTags(
-            res.data.tags.map(t => ({ value: t, label: t }))
-          );
+          setAvailableTags(res.data.tags.map(t => ({ value: t, label: t })));
         } else {
           console.error('Errore GET_TAGS:', res?.error);
         }
@@ -43,46 +39,42 @@ export function PostModal({ mode, initialData = {}, onClose }) {
     );
   }, [socket, ready]);
 
-  // Ascolta broadcast POST_CREATED per CREATE_POST
+  // Ascolta broadcast POST_CREATED / POST_UPDATED
   useEffect(() => {
     if (!socket) return;
-    const handlePostCreated = newPost => {
+    const created = newPost => {
       if (newPost.authorId === user.id) {
         toast.success('Post creato!');
         onClose();
       }
     };
-    socket.on('POST_CREATED', handlePostCreated);
+    const updated = updatedPost => {
+      if (updatedPost.authorId === user.id) {
+        toast.success('Post aggiornato!');
+        onClose();
+      }
+    };
+    socket.on('POST_CREATED', created);
+    socket.on('POST_UPDATED', updated);
     return () => {
-      socket.off('POST_CREATED', handlePostCreated);
+      socket.off('POST_CREATED', created);
+      socket.off('POST_UPDATED', updated);
     };
   }, [socket, user.id, onClose]);
 
   const handleSubmit = async () => {
-  console.log('[DEBUG] handleSubmit chiamata');
-
-  if (!socket || !ready) {
-    console.log('[DEBUG] Socket non pronto');
-    return toast.error(
-      'Connessione WebSocket non disponibile. Attendi qualche secondo e riprova.'
-    );
-  }
-
-  if (title.trim().length < 3) {
-    console.log('[DEBUG] Titolo troppo corto:', title);
-    return toast.error('Titolo troppo corto (min 3 caratteri)');
-  }
-
-  const plainText = content.replace(/<[^>]+>/g, '').trim();
-  console.log('[DEBUG] Contenuto plainText:', plainText);
-
-  if (plainText.length < 10) {
-    console.log('[DEBUG] Contenuto troppo breve:', plainText);
-    return toast.error('Contenuto troppo breve (min 10 caratteri)');
-  }
-
-  // se arrivi qui, sei passato
-  console.log('[DEBUG] Validazione superata, proseguo con submit');
+    if (!socket || !ready) {
+      return toast.error(
+        'Connessione WebSocket non disponibile. Attendi qualche secondo e riprova.'
+      );
+    }
+    if (title.trim().length < 3) {
+      return toast.error('Titolo troppo corto (min 3 caratteri)');
+    }
+    const plainText = content.replace(/<[^>]+>/g, '').trim();
+    if (plainText.length < 10) {
+      return toast.error('Contenuto troppo breve (min 10 caratteri)');
+    }
 
     // Upload immagine
     let imageUrl = initialData.image || '';
@@ -94,27 +86,22 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       }
     }
 
-    // Prepara payload coerente con spec
+    // Prepara payload, data sempre "adesso"
     const payload = {
       ...(mode === 'edit' && { postId: initialData.id }),
       title,
       content,
-      publishDate: publishDate.getTime(),
+      publishDate: Date.now(),
       image: imageUrl,
       tags: tags.map(t => t.value),
-      // authorId: user.id,
-      // userIds: [user.id],
     };
 
     const eventName = mode === 'create' ? 'createPost' : 'UPDATE_POST';
-
-    console.log('[DEBUG] Emitting', eventName, payload);
-
     socket.emit(eventName, payload, res => {
-      console.log('[DEBUG] Emitting', eventName, payload);
       if (res?.success) {
         toast.success(mode === 'create' ? 'Post creato!' : 'Post aggiornato!');
         onClose();
+        dispatch(fetchPosts({ limit: 100 }));
       } else {
         toast.error(res?.error?.message || 'Errore sul server');
       }
@@ -135,18 +122,14 @@ export function PostModal({ mode, initialData = {}, onClose }) {
             onChange={e => setTitle(e.target.value)}
           />
         </label>
+
         <label className={styles['post-modal__field']}>
           <span>Contenuto</span>
           <TiptapEditor value={content} onChange={setContent} />
         </label>
-        <label className={styles['post-modal__field']}>
-          <span>Data di pubblicazione</span>
-          <input
-            type="date"
-            value={publishDate.toISOString().slice(0, 10)}
-            onChange={e => setPublishDate(new Date(e.target.value))}
-          />
-        </label>
+
+        {/* Data di pubblicazione rimossa: sempre data corrente */}
+
         <label className={styles['post-modal__field']}>
           <span>Tag</span>
           <CreatableSelect
@@ -157,6 +140,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
             placeholder="Seleziona o crea tag…"
           />
         </label>
+
         <label className={styles['post-modal__field']}>
           <span>Immagine</span>
           <input
@@ -175,11 +159,8 @@ export function PostModal({ mode, initialData = {}, onClose }) {
         </button>
         <button
           className={`${styles.btn} ${styles['btn--primary']}`}
-          onClick={() => {
-              console.log('CLICK BUTTON');
-              handleSubmit();
-            }}
-            disabled={!ready}
+          onClick={handleSubmit}
+          disabled={!ready}
         >
           <FiSave className={styles.icon} />{' '}
           {mode === 'create' ? 'Crea' : 'Aggiorna'}
