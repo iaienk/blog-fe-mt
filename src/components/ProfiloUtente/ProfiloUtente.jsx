@@ -1,3 +1,4 @@
+// src/pages/ProfiloUtente/ProfiloUtente.jsx
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate }               from 'react-router-dom';
 import { useSelector, useDispatch }  from 'react-redux';
@@ -8,7 +9,8 @@ import {
   selectPostsStatus
 } from '../../reducers/post.slice';
 import { useSocketContext }          from '../../context/SocketProvider';
-import PostCard                      from '../PostCard/PostCard';
+import PostCard                      from '../../components/PostCard/PostCard';
+import DetailPostPage                from '../../components/DetailPostPage/DetailPostPage';
 import styles                        from './ProfiloUtente.module.scss';
 import { uploadImageToCloudinary }   from '../../utils/uploadImage';
 
@@ -22,6 +24,9 @@ export default function ProfiloUtente() {
   const allPosts    = useSelector(selectAllPosts);
   const postsStatus = useSelector(selectPostsStatus);
   const { socket, ready } = useSocketContext();
+
+  // stato per aprire il dettaglio post in modal
+  const [detailPost, setDetailPost] = useState(null);
 
   // 1) Carica i post (fino a 100)
   useEffect(() => {
@@ -38,7 +43,7 @@ export default function ProfiloUtente() {
       .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
   }, [allPosts, user]);
 
-  // 3) Stati locali
+  // 3) Stati locali per profilo
   const [username, setUsername]             = useState(user?.username || '');
   const [avatar, setAvatar]                 = useState(user?.avatar || PLACEHOLDER);
   const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
@@ -46,23 +51,20 @@ export default function ProfiloUtente() {
   const [feedback, setFeedback]             = useState('');
   const [isEditing, setIsEditing]           = useState(false);
 
-  // serve per abilitare/disabilitare “Salva”
   const hasChanges =
     username !== user?.username ||
     !!nuovoAvatarUrl;
 
   // 4) Sincronizza i campi quando cambia l'user
-  //    → ho rimosso il setFeedback('') per non cancellare il messaggio di conferma
   useEffect(() => {
     if (!user) return;
     setUsername(user.username);
     setAvatar(user.avatar || PLACEHOLDER);
     setUsernameDisponibile(true);
-    // setFeedback('');   ← RIMOSSO
     setNuovoAvatarUrl(null);
   }, [user]);
 
-  // 5) Pulisce il feedback dopo 2s se è il messaggio standard
+  // 5) Reset feedback dopo conferma
   useEffect(() => {
     if (feedback === 'Profilo aggiornato con successo!') {
       const t = setTimeout(() => setFeedback(''), 2000);
@@ -70,7 +72,7 @@ export default function ProfiloUtente() {
     }
   }, [feedback]);
 
-  // 6) Debounce + emit con ack
+  // 6) Debounce check username via socket
   useEffect(() => {
     if (!ready || !socket) return;
     if (!isEditing || username === user.username) {
@@ -99,7 +101,7 @@ export default function ProfiloUtente() {
     }
   };
 
-  // 7) Salva profilo con delay sulla chiusura del form
+  // Salva profilo
   const handleSalva = async () => {
     if (!usernameDisponibile || !hasChanges) return;
     try {
@@ -119,9 +121,7 @@ export default function ProfiloUtente() {
       if (!res.ok) throw new Error();
       const updated = await res.json();
       dispatch(setUser({ ...user, ...updated }));
-      // setto il feedback
       setFeedback('Profilo aggiornato con successo!');
-      // chiudo la modalità editing **dopo** 1 secondo
       setIsEditing(false);
     } catch {
       setFeedback('Errore durante il salvataggio');
@@ -129,7 +129,7 @@ export default function ProfiloUtente() {
     }
   };
 
-  // Annulla modifica
+  // Annulla modifica profilo
   const handleAnnulla = () => {
     setUsername(user.username);
     setAvatar(user.avatar || PLACEHOLDER);
@@ -137,6 +137,16 @@ export default function ProfiloUtente() {
     setFeedback('');
     setIsEditing(false);
     setUsernameDisponibile(true);
+  };
+
+  // Apri dettaglio post
+  const handleViewDetail = post => {
+    setDetailPost(post);
+  };
+
+  // Chiudi dettaglio post
+  const handleCloseDetail = () => {
+    setDetailPost(null);
   };
 
   return (
@@ -175,11 +185,13 @@ export default function ProfiloUtente() {
                   }}
                 />
                 {username !== user.username && (
-                  <span className={
-                    usernameDisponibile
-                      ? styles.disponibile
-                      : styles.nonDisponibile
-                  }>
+                  <span
+                    className={
+                      usernameDisponibile
+                        ? styles.disponibile
+                        : styles.nonDisponibile
+                    }
+                  >
                     {usernameDisponibile
                       ? 'Username disponibile ✅'
                       : 'Username non disponibile ❌'}
@@ -191,16 +203,11 @@ export default function ProfiloUtente() {
             )}
           </div>
 
-          {/* feedback */}
-          {feedback && (
-            <p className={styles.feedback}>{feedback}</p>
-          )}
+          {feedback && <p className={styles.feedback}>{feedback}</p>}
 
           <div className={styles.actions}>
             {!isEditing ? (
-              <button onClick={() => setIsEditing(true)}>
-                Modifica profilo
-              </button>
+              <button onClick={() => setIsEditing(true)}>Modifica profilo</button>
             ) : (
               <>
                 <button
@@ -225,21 +232,34 @@ export default function ProfiloUtente() {
           >
             Logout
           </button>
+
+          <div className={styles.postsList}>
+            <h3>I tuoi post</h3>
+            {postsStatus === 'loading' && <p>Caricamento post…</p>}
+            {postsStatus === 'succeeded' && sortedUserPosts.length > 0 &&
+              sortedUserPosts.map(post => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onViewDetail={handleViewDetail}
+                />
+              ))
+            }
+            {postsStatus === 'succeeded' && sortedUserPosts.length === 0 && (
+              <p>Non hai ancora creato post.</p>
+            )}
+            {postsStatus === 'failed' && <p>Errore nel caricamento dei post.</p>}
+          </div>
         </>
       )}
 
-      {/* lista post dell'utente */}
-      <div className={styles.postsList}>
-        <h3>I tuoi post</h3>
-        {postsStatus === 'loading' && <p>Caricamento post…</p>}
-        {postsStatus === 'succeeded' && sortedUserPosts.length > 0 &&
-          sortedUserPosts.map(post => <PostCard key={post.id} post={post} />)
-        }
-        {postsStatus === 'succeeded' && sortedUserPosts.length === 0 && (
-          <p>Non hai ancora creato post.</p>
-        )}
-        {postsStatus === 'failed' && <p>Errore nel caricamento dei post.</p>}
-      </div>
+      {/* Modal di dettaglio post */}
+      {detailPost && (
+        <DetailPostPage
+          post={detailPost}
+          onClose={handleCloseDetail}
+        />
+      )}
     </div>
   );
 }
