@@ -1,82 +1,103 @@
+// src/components/PostModal/PostModal.jsx
 import React, { useState, useEffect } from 'react';
-import Modal from '../Modal/Modal';
-import CreatableSelect from 'react-select/creatable';
-import TiptapEditor from '../TiptapEditor/TiptapEditor';
-import { useSocketContext } from '../../context/SocketProvider';
-import { useSelector, useDispatch  } from 'react-redux';
-import { userSelector } from '../../reducers/user.slice.js';
+import Modal                       from '../Modal/Modal';
+import CreatableSelect             from 'react-select/creatable';
+import TiptapEditor                from '../TiptapEditor/TiptapEditor';
+import { useSocketContext }        from '../../context/SocketProvider';
+import { useSocketEmit }           from '../../hooks/useSocketEmit';
+import { useSelector, useDispatch } from 'react-redux';
+import { userSelector }            from '../../reducers/user.slice.js';
+import { fetchPosts }              from '../../reducers/post.slice';
 import { uploadImageToCloudinary } from '../../utils/uploadImage.js';
-import { toast } from 'react-toastify';
-import { FiX, FiSave } from 'react-icons/fi';
-import styles from './PostModal.module.scss';
-import { fetchPosts } from '../../reducers/post.slice';
+import { toast }                   from 'react-toastify';
+import { FiX, FiSave }             from 'react-icons/fi';
+import styles                      from './PostModal.module.scss';
 
 export function PostModal({ mode, initialData = {}, onClose }) {
   const { socket, ready } = useSocketContext();
-  const user = useSelector(userSelector);
-  const dispatch = useDispatch();
+  const { getTags }       = useSocketEmit();
+  const user              = useSelector(userSelector);
+  const dispatch          = useDispatch();
+
+  // form state
   const [title, setTitle] = useState(initialData.title || '');
   const [content, setContent] = useState(initialData.content || '');
-  const [tags, setTags] = useState(
+  const [selectedTags, setSelectedTags] = useState(
     (initialData.tags || []).map(t => ({ value: t, label: t }))
   );
-  const [availableTags, setAvailableTags] = useState([]);
+  const [tagOptions, setTagOptions] = useState([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [inputValue, setInputValue] = useState('');           // for CreatableSelect input
   const [imageFile, setImageFile] = useState(null);
 
-  // Carica i tag alla apertura della modal
-  useEffect(() => {
-    if (!socket || !ready) return;
-    socket.emit(
-      'GET_TAGS',
-      { name: '', cursor: null, direction: 'next', limit: 50 },
-      res => {
-        if (res?.success) {
-          setAvailableTags(res.data.tags.map(t => ({ value: t, label: t })));
-        } else {
-          console.error('Errore GET_TAGS:', res?.error);
-        }
-      }
-    );
-  }, [socket, ready]);
+ useEffect(() => {
+   if (!ready) return;
 
-  // Ascolta broadcast POST_CREATED / POST_UPDATED
+   // se il campo è vuoto, azzeriamo le opzioni e non facciamo fetch
+   if (inputValue.trim() === '') {
+     setTagOptions([]);
+     setTagsLoading(false);
+     return;
+   }
+
+   // debounce di 500ms
+   const timer = setTimeout(() => {
+     setTagsLoading(true);
+     getTags({ name: inputValue, cursor: null, direction: 'next', limit: 50 })
+       .then(data => {
+         const list = Array.isArray(data.tags) ? data.tags : [];
+         const sorted = [...list].sort((a, b) => a.localeCompare(b));
+         setTagOptions(sorted.map(tag => ({ value: tag, label: tag })));
+       })
+       .catch(err => {
+         console.error('Errore getTags:', err);
+         toast.error('Impossibile caricare i tag');
+       })
+       .finally(() => {
+         setTagsLoading(false);
+       });
+   }, 500);
+
+   return () => clearTimeout(timer);
+ }, [inputValue, ready, getTags]);
+
+  // listeners for create/update events
   useEffect(() => {
     if (!socket) return;
-    const created = newPost => {
+    const onCreated = newPost => {
       if (newPost.authorId === user.id) {
         toast.success('Post creato!');
         onClose();
+        dispatch(fetchPosts({ limit: 100 }));
       }
     };
-    const updated = updatedPost => {
-      if (updatedPost.authorId === user.id) {
+    const onUpdated = updPost => {
+      if (updPost.authorId === user.id) {
         toast.success('Post aggiornato!');
         onClose();
+        dispatch(fetchPosts({ limit: 100 }));
       }
     };
-    socket.on('POST_CREATED', created);
-    socket.on('POST_UPDATED', updated);
+    socket.on('POST_CREATED', onCreated);
+    socket.on('POST_UPDATED', onUpdated);
     return () => {
-      socket.off('POST_CREATED', created);
-      socket.off('POST_UPDATED', updated);
+      socket.off('POST_CREATED', onCreated);
+      socket.off('POST_UPDATED', onUpdated);
     };
-  }, [socket, user.id, onClose]);
+  }, [socket, user.id, onClose, dispatch]);
 
   const handleSubmit = async () => {
-    if (!socket || !ready) {
-      return toast.error(
-        'Connessione WebSocket non disponibile. Attendi qualche secondo e riprova.'
-      );
+    if (!ready) {
+      return toast.error('WebSocket non disponibile. Riprova più tardi.');
     }
     if (title.trim().length < 3) {
       return toast.error('Titolo troppo corto (min 3 caratteri)');
     }
-    const plainText = content.replace(/<[^>]+>/g, '').trim();
-    if (plainText.length < 10) {
+    const plain = content.replace(/<[^>]+>/g, '').trim();
+    if (plain.length < 10) {
       return toast.error('Contenuto troppo breve (min 10 caratteri)');
     }
 
-    // Upload immagine
     let imageUrl = initialData.image || '';
     if (imageFile) {
       try {
@@ -86,16 +107,14 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       }
     }
 
-    // Prepara payload, data sempre "adesso"
     const payload = {
       ...(mode === 'edit' && { postId: initialData.id }),
       title,
       content,
       publishDate: Date.now(),
       image: imageUrl,
-      tags: tags.map(t => t.value),
+      tags: selectedTags.map(t => t.value),
     };
-
     const eventName = mode === 'create' ? 'createPost' : 'UPDATE_POST';
     socket.emit(eventName, payload, res => {
       if (res?.success) {
@@ -114,6 +133,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
         {mode === 'create' ? 'Nuovo Post' : 'Modifica Post'}
       </h2>
       <div className={styles['post-modal__body']}>
+        {/* Titolo */}
         <label className={styles['post-modal__field']}>
           <span>Titolo</span>
           <input
@@ -123,24 +143,35 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           />
         </label>
 
+        {/* Contenuto */}
         <label className={styles['post-modal__field']}>
           <span>Contenuto</span>
           <TiptapEditor value={content} onChange={setContent} />
         </label>
 
-        {/* Data di pubblicazione rimossa: sempre data corrente */}
-
+        {/* Tag con debounce */}
         <label className={styles['post-modal__field']}>
           <span>Tag</span>
-          <CreatableSelect
-            isMulti
-            options={availableTags}
-            value={tags}
-            onChange={setTags}
-            placeholder="Seleziona o crea tag…"
-          />
+        <CreatableSelect
+          isMulti
+          options={tagOptions}
+          value={selectedTags}
+          onChange={setSelectedTags}
+          inputValue={inputValue}
+          onInputChange={(value, { action }) => {
+            if (action === 'input-change') {
+              setInputValue(value);
+            }
+          }}
+          isLoading={tagsLoading}
+          noOptionsMessage={() =>
+            tagsLoading ? 'Caricamento…' : 'Inizia a digitare per cercare tag'
+          }
+          placeholder="Digita per cercare o crea un tag…"
+        />
         </label>
 
+        {/* Immagine */}
         <label className={styles['post-modal__field']}>
           <span>Immagine</span>
           <input
@@ -150,6 +181,8 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           />
         </label>
       </div>
+
+      {/* Azioni */}
       <div className={styles['post-modal__actions']}>
         <button
           className={`${styles.btn} ${styles['btn--secondary']}`}
