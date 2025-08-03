@@ -21,6 +21,20 @@
   margin: 0;
   color: #222;
 }
+.tags {
+  margin: 0.5rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tag {
+  background-color: #f0f0f0;
+  color: #555;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
 
 .meta {
   display: flex;
@@ -88,4 +102,3 @@
     color: #444;
   }
 }
-

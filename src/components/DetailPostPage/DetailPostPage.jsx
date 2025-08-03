@@ -23,12 +23,23 @@ const DetailPostPage = ({ post, onClose }) => {
     <Modal onClose={onClose} className={styles['detail-modal']}>
       <article className={styles.post}>
         <header>
+
           <h1 className={styles.title}>{post.title}</h1>
+
+        {post.tags && post.tags.length > 0 && (
+          <div className={styles.tags}>
+            {post.tags.map(tag => (
+              <span key={tag} className={styles.tag}>#{tag}</span>
+            ))}
+          </div>
+        )}
           <div className={styles.meta}>
             <span>di ID {post.authorId}</span>
+
             <span>
               Pubblicato: {formattedDate} alle {formattedTime}
             </span>
+            
           </div>
         </header>
 
@@ -39,7 +50,6 @@ const DetailPostPage = ({ post, onClose }) => {
           className={styles.content}
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
-
         <section className={styles.comments}>
           <h2>Commenti</h2>
           <p>Nessun commento</p>
