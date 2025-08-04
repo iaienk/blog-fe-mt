@@ -18,71 +18,63 @@ export default function HomePage() {
   const status   = useSelector(selectPostsStatus);
   const error    = useSelector(selectPostsError);
 
-  // per aprire il detail modal
-  const [detailPost, setDetailPost] = useState(null);
-  // per aprire il create/edit modal
+  const [detailPost, setDetailPost]   = useState(null);
   const [editingPost, setEditingPost] = useState(null);
 
-  // Carica i post al mount o quando lo status torna idle
+  // 1) fetch on mount
   useEffect(() => {
     if (status === "idle") {
       dispatch(fetchPosts({ limit: 100 }));
     }
   }, [dispatch, status]);
 
-  // Ordina post per data di pubblicazione (più recente → più vecchio)
-  const sortedPosts = useMemo(
-    () =>
-      [...posts].sort(
-        (a, b) =>
-          new Date(b.publishDate).getTime() -
-          new Date(a.publishDate).getTime()
-      ),
-    [posts]
-  );
+  // 2) sorted posts
+  const sortedPosts = useMemo(() =>
+    [...posts].sort((a,b) => new Date(b.publishDate) - new Date(a.publishDate))
+  , [posts]);
 
-  // Handlers
-  const handleViewDetail = (post) => {
-    setDetailPost(post);
+  // 3) Handlers
+  const handleViewDetail = post => setDetailPost(post);
+
+  // --- chiude solo il detail, senza refresh
+  const handleCloseDetail = () => {
+    setDetailPost(null);
   };
 
-  // chiude TUTTE le modal e ricarica i post
+  // --- chiude solo il post-modal (edit/create) E ricarica i post
   const handleCloseModal = () => {
-    setDetailPost(null);
     setEditingPost(null);
     dispatch(fetchPosts({ limit: 100 }));
   };
 
-  // Stati di caricamento / errore / vuoto
-  if (status === "loading") return <p>Caricamento post…</p>;
-  if (status === "failed")  return <p>Errore: {error}</p>;
-  if (status === "succeeded" && posts.length === 0) return <p>Nessun post</p>;
+  // 4) UI states
+  if (status === "loading")   return <p>Caricamento post…</p>;
+  if (status === "failed")    return <p>Errore: {error}</p>;
+  if (status === "succeeded" && posts.length === 0)
+                               return <p>Nessun post</p>;
 
   return (
     <div className={styles.container}>
-      {/* Navbar già gestisce "Nuovo Post" */}
-
-      {/* Lista dei post */}
       <div className={styles.list}>
-        {sortedPosts.map((p) => (
+        {sortedPosts.map(p => (
           <PostCard
             key={p.id}
             post={p}
             onViewDetail={handleViewDetail}
-            onEdit={(post) => setEditingPost(post)}
+            onEdit={post => setEditingPost(post)}
           />
         ))}
       </div>
 
-      {/* Detail Modal */}
+      {/* DetailPostPage: chiude SOLO la modal */}
       {detailPost && (
         <DetailPostPage
           post={detailPost}
-          onClose={handleCloseModal}
+          onClose={handleCloseDetail}
         />
       )}
 
-      {/* Create/Edit Modal */}
+      {/* PostModal (create/edit): chiude + refresh */}
       {editingPost && (
         <PostModal
           mode={editingPost.id ? "edit" : "create"}

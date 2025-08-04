@@ -107,19 +107,21 @@ export function PostModal({ mode, initialData = {}, onClose }) {
       }
     }
 
-    const payload = {
-      ...(mode === 'edit' && { postId: initialData.id }),
-      title,
-      content,
-      publishDate: Date.now(),
-      image: imageUrl,
-      tags: selectedTags.map(t => t.value),
-    };
-    const eventName = mode === 'create' ? 'createPost' : 'UPDATE_POST';
+   const payload = {
+     ...(mode === 'edit' && { postId: initialData.id }),
+     title,
+     content,
+     publishDate: Date.now(),
+     tags: selectedTags.map(t => t.value),
+     // includi image solo in create
+    ...(mode === 'create' && { image: imageUrl }),
+  };
+
+    const eventName = mode === 'create' ? 'createPost' : 'updatePost';
     socket.emit(eventName, payload, res => {
       if (res?.success) {
         toast.success(mode === 'create' ? 'Post creato!' : 'Post aggiornato!');
-        onClose();
+        onClose(res.data);
         dispatch(fetchPosts({ limit: 100 }));
       } else {
         toast.error(res?.error?.message || 'Errore sul server');

@@ -1,7 +1,7 @@
 @use '../../styles/variables' as vars;
 
 .card {
-  @include vars.card-style;           
+  @include vars.card-style;
   margin-bottom: 2rem;
   max-width: 900px;
   width: 100%;
@@ -11,14 +11,6 @@
   display: flex;
   align-items: center;
   margin-bottom: 1rem;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  object-fit: cover;
-  margin-right: 0.5rem;
 }
 
 .name {
@@ -50,4 +42,24 @@
   font-size: 0.85rem;
   text-align: right;
   color: var(--secondary-color);
+}
+
+.actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.75rem;
+}
+
+.editButton,
+.viewButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.editButton:hover,
+.viewButton:hover {
+  text-decoration: underline;
 }

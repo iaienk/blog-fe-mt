@@ -1,8 +1,8 @@
-import { useContext, useCallback } from 'react';
-import { SocketContext } from '../context/SocketProvider';
+import { useCallback } from 'react';
+import { useSocketContext } from '../context/SocketProvider';
 
 export function useSocketEmit() {
-  const { socket, ready } = useContext(SocketContext);  // <-- ready, non socketReady
+  const { socket, ready } = useSocketContext();
 
   const getTags = useCallback((payload) => {
     return new Promise((resolve, reject) => {
@@ -11,13 +11,15 @@ export function useSocketEmit() {
       }
       socket.emit('getTags', payload, (response) => {
         if (response.success) {
-          resolve(response.data);   // { tags: […] }
+          resolve(response.data);
         } else {
-          reject(response.error || new Error('GET_TAGS fallito'));
+          reject(response.error || new Error('getTags fallito'));
         }
       });
     });
   }, [socket, ready]);
+
+  // aggiungi qui gli altri emit helpers che ti servono...
 
   return { getTags };
 }

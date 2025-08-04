@@ -1,63 +1,68 @@
 /* eslint-disable react-refresh/only-export-components */
-import {createContext, useContext, useEffect, useRef, useState} from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import io from "socket.io-client";
-import {useSelector} from "react-redux";
-import {userSelector} from "../reducers/user.slice.js";
+import { useSelector, useDispatch } from "react-redux";
+import { userSelector } from "../reducers/user.slice.js";
+import { postUpdated }  from "../reducers/post.slice";
 
-const defaultValue = {
-  socket: undefined,
-  ready: false,       // ← rinomina per coerenza
-};
-
-export const SocketContext = createContext(defaultValue);
-
-// **hook** per consumare il context
+const SocketContext = createContext({ socket: null, ready: false });
 export const useSocketContext = () => useContext(SocketContext);
 
-const SocketProvider = ({ children }) => {
-  const socket = useRef();
-  const user = useSelector(userSelector);
+export default function SocketProvider({ children }) {
+  const socketRef = useRef(null);
+  const user      = useSelector(userSelector);
+  const dispatch  = useDispatch();
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (user?.accessToken) {
-      socket.current = io(
-        "https://todo-pp.longwavestudio.dev/multiuserblog",
-        {
-          transports: ["websocket"],
-          auth: { token: user.accessToken },
-        }
-      );
+    if (!user?.accessToken) return;
+    // se il socket esiste già, non facciamo nulla
+    if (socketRef.current) return;
 
-      socket.current.on("connected", (res) => {
-        console.log("Connected to socket", res);
-        setReady(true);
-      });
+    // inizializza la connessione
+    const s = io("https://todo-pp.longwavestudio.dev/multiuserblog", {
+      transports: ["websocket"],
+      auth: { token: user.accessToken },
+      autoConnect: true,
+    });
+    socketRef.current = s;
 
-      socket.current.on("closed", (res) => {
-        console.log("Disconnected from socket", res);
-        setReady(false);
-      });
+    s.on("connect", () => {
+      setReady(true);
+      console.log("Socket connesso:", s.id);
+    });
+    s.on("disconnect", reason => {
+      setReady(false);
+      console.log("Socket disconnesso:", reason);
+    });
+    // silenziamo l’errore iniziale di StrictMode
+    s.on("connect_error", () => { /* skip */ });
 
-      socket.current.on("connect_error", (err) => {
-        console.log("Error connecting to socket", err);
-        setReady(false);
-        socket.current.removeAllListeners();
-        socket.current.close();
-      });
-    }
-  }, [user]);
+    // ascoltiamo l’update singolo e lo upserta nello store
+    s.on("POST_UPDATED", updatedPost => {
+      dispatch(postUpdated({
+        id:           updatedPost.id,
+        title:        updatedPost.title,
+        content:      updatedPost.content,
+        publishDate:  new Date(updatedPost.publishDate).getTime(),
+        image:        updatedPost.image,
+        tags:         updatedPost.tags,
+        authorId:     updatedPost.authorId
+      }));
+    });
+
+    // **Nessun cleanup**: non chiudiamo mai il socketRef durante mount/unmount di StrictMode
+  }, [user, dispatch]);
 
   return (
-    <SocketContext.Provider
-      value={{
-        socket: socket.current,
-        ready,           // ← valore coerente con useSocketContext
-      }}
-    >
+    <SocketContext.Provider value={{ socket: socketRef.current, ready }}>
       {children}
     </SocketContext.Provider>
   );
-};
-
-export default SocketProvider;
+}
