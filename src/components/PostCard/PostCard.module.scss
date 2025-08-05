@@ -1,6 +1,7 @@
 @use '../../styles/variables' as vars;
 
 .card {
+  position: relative;
   @include vars.card-style;
   margin-bottom: 2rem;
   max-width: 900px;
@@ -62,4 +63,19 @@
 .editButton:hover,
 .viewButton:hover {
   text-decoration: underline;
+}
+
+.deletedBadge {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 0, 0, 0.1);
+  color: #c00;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 10;
 }

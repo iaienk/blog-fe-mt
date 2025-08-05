@@ -6,7 +6,8 @@ import { userSelector, setUser, clearUser } from '../../reducers/user.slice';
 import {
   fetchPosts,
   selectAllPosts,
-  selectPostsStatus
+  selectPostsStatus,
+  postDeleted
 } from '../../reducers/post.slice';
 import { useSocketContext }          from '../../context/SocketProvider';
 import PostCard                      from '../../components/PostCard/PostCard';
@@ -145,6 +146,14 @@ export default function ProfiloUtente() {
   const handleEdit = post => setEditingPost(post);
   const handleCloseEdit = () => setEditingPost(null);
 
+  const handleDelete = postId => {
+    dispatch(postDeleted(postId));
+    // se stiamo guardando il dettaglio di quel post, chiudo il modal
+    if (detailPost?.id === postId) {
+      setDetailPost(null);
+    }
+  };
+
   return (
     <div className={styles.containerProfilo}>
       {!user ? (
@@ -251,6 +260,7 @@ export default function ProfiloUtente() {
                   post={p}
                   onViewDetail={handleViewDetail}
                   onEdit={handleEdit}
+                  onDelete={handleDelete}
                 />
               ))
             }

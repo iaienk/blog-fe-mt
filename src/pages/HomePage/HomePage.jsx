@@ -6,6 +6,7 @@ import {
   selectAllPosts,
   selectPostsStatus,
   selectPostsError,
+  postDeleted,
 } from "../../reducers/post.slice";
 import PostCard from "../../components/PostCard/PostCard";
 import DetailPostPage from "../../components/DetailPostPage/DetailPostPage";
@@ -13,13 +14,13 @@ import { PostModal } from "../../components/PostModal/PostModal";
 import styles from "./HomePage.module.scss";
 
 export default function HomePage() {
-  const dispatch = useDispatch();
-  const posts    = useSelector(selectAllPosts);
-  const status   = useSelector(selectPostsStatus);
-  const error    = useSelector(selectPostsError);
+  const dispatch    = useDispatch();
+  const posts       = useSelector(selectAllPosts);
+  const status      = useSelector(selectPostsStatus);
+  const error       = useSelector(selectPostsError);
 
-  const [detailPost, setDetailPost]   = useState(null);
-  const [editingPost, setEditingPost] = useState(null);
+  const [detailPost,   setDetailPost]   = useState(null);
+  const [editingPost,  setEditingPost]  = useState(null);
 
   // 1) fetch on mount
   useEffect(() => {
@@ -29,22 +30,28 @@ export default function HomePage() {
   }, [dispatch, status]);
 
   // 2) sorted posts
-  const sortedPosts = useMemo(() =>
-    [...posts].sort((a,b) => new Date(b.publishDate) - new Date(a.publishDate))
-  , [posts]);
+  const sortedPosts = useMemo(
+    () => [...posts].sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate)),
+    [posts]
+  );
 
   // 3) Handlers
   const handleViewDetail = post => setDetailPost(post);
 
-  // --- chiude solo il detail, senza refresh
-  const handleCloseDetail = () => {
-    setDetailPost(null);
-  };
+  const handleCloseDetail = () => setDetailPost(null);
 
-  // --- chiude solo il post-modal (edit/create) E ricarica i post
   const handleCloseModal = () => {
     setEditingPost(null);
     dispatch(fetchPosts({ limit: 100 }));
+  };
+
+  // **NUOVO**: quando un post viene cancellato
+  const handleDelete = postId => {
+    dispatch(postDeleted(postId));
+    // se stiamo guardando il dettaglio di quel post, chiudi il modal di dettaglio
+    if (detailPost?.id === postId) {
+      setDetailPost(null);
+    }
   };
 
   // 4) UI states
@@ -62,19 +69,19 @@ export default function HomePage() {
             post={p}
             onViewDetail={handleViewDetail}
             onEdit={post => setEditingPost(post)}
+            onDelete={handleDelete}            // passa onDelete a PostCard
           />
         ))}
       </div>
 
-      {/* DetailPostPage: chiude SOLO la modal */}
       {detailPost && (
         <DetailPostPage
           post={detailPost}
           onClose={handleCloseDetail}
+          onDelete={handleDelete}            // passa onDelete anche a DetailPostPage
         />
       )}
 
-      {/* PostModal (create/edit): chiude + refresh */}
       {editingPost && (
         <PostModal
           mode={editingPost.id ? "edit" : "create"}

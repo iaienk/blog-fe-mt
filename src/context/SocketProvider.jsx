@@ -9,7 +9,7 @@ import React, {
 import io from "socket.io-client";
 import { useSelector, useDispatch } from "react-redux";
 import { userSelector } from "../reducers/user.slice.js";
-import { postUpdated }  from "../reducers/post.slice";
+import { postUpdated, postDeleted } from "../reducers/post.slice";
 
 const SocketContext = createContext({ socket: null, ready: false });
 export const useSocketContext = () => useContext(SocketContext);
@@ -22,10 +22,8 @@ export default function SocketProvider({ children }) {
 
   useEffect(() => {
     if (!user?.accessToken) return;
-    // se il socket esiste già, non facciamo nulla
     if (socketRef.current) return;
 
-    // inizializza la connessione
     const s = io("https://todo-pp.longwavestudio.dev/multiuserblog", {
       transports: ["websocket"],
       auth: { token: user.accessToken },
@@ -41,10 +39,9 @@ export default function SocketProvider({ children }) {
       setReady(false);
       console.log("Socket disconnesso:", reason);
     });
-    // silenziamo l’errore iniziale di StrictMode
-    s.on("connect_error", () => { /* skip */ });
+    s.on("connect_error", () => { /* skip StrictMode error */ });
 
-    // ascoltiamo l’update singolo e lo upserta nello store
+    // Aggiornamento singolo post
     s.on("POST_UPDATED", updatedPost => {
       dispatch(postUpdated({
         id:           updatedPost.id,
@@ -57,7 +54,13 @@ export default function SocketProvider({ children }) {
       }));
     });
 
-    // **Nessun cleanup**: non chiudiamo mai il socketRef durante mount/unmount di StrictMode
+    // **CORRETTO** ascolto dell'evento broadcast per post deletato
+    s.on("postDeleted", payload => {
+      // payload potrebbe essere { id: '...' } o solo l'id
+      const deletedId = payload.id ?? payload;
+      dispatch(postDeleted(deletedId));
+    });
+
   }, [user, dispatch]);
 
   return (

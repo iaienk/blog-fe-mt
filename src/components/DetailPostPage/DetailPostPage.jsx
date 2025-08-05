@@ -1,54 +1,111 @@
-import React, { useState } from 'react';
-import { useSelector }       from 'react-redux';
-import Modal                 from '../Modal/Modal';
-import styles                from './DetailPostPage.module.scss';
-import { userSelector }      from '../../reducers/user.slice.js';
-import { selectAllPosts }    from '../../reducers/post.slice';
-import { FiEdit }            from 'react-icons/fi';
-import { PostModal }         from '../PostModal/PostModal';
+// src/components/DetailPostPage/DetailPostPage.jsx
 
-const DetailPostPage = ({ post: _post, onClose }) => {
-  const user     = useSelector(userSelector);
-  const allPosts = useSelector(selectAllPosts);
-  // Prendiamo la versione più recente del post dallo store
-  const post     = allPosts.find(p => p.id === _post.id) || _post;
+import React, { useState, useRef, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import Modal from '../Modal/Modal';
+import styles from './DetailPostPage.module.scss';
+import { userSelector } from '../../reducers/user.slice';
+import { selectAllPosts, selectDeletedIds, postDeleted } from '../../reducers/post.slice';
+import { FiEdit, FiTrash2 } from 'react-icons/fi';
+import { PostModal } from '../PostModal/PostModal';
+import { useSocketContext } from '../../context/SocketProvider';
+
+const DetailPostPage = ({ post: _post, onClose, onDelete }) => {
+  const dispatch   = useDispatch();
+  const user       = useSelector(userSelector);
+  const allPosts   = useSelector(selectAllPosts);
+  const deletedIds = useSelector(selectDeletedIds);
+  const { socket, ready } = useSocketContext();
+
+  // Prendo la versione aggiornata dal store, altrimenti uso _post
+  const post = allPosts.find(p => p.id === _post.id) || _post;
   const [isEditing, setIsEditing] = useState(false);
 
-  const canEdit = user?.id === post.authorId;
+  const canEdit   = user?.id === post.authorId;
+  const isDeleted = deletedIds.includes(post.id);
+
   const placeholder =
     'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753866488/placeholder-image.png';
   const imageUrl = post.image || placeholder;
 
-  // Il campo publishDate viene aggiornato ad ogni edit => usiamolo per decidere label
-  const isModified = post.publishDate !== _post.publishDate;
-  const rawDate    = post.publishDate;
-  const published  = new Date(rawDate);
+  const isModified   = post.publishDate !== _post.publishDate;
+  const published    = new Date(post.publishDate);
   const formattedDate = published.toLocaleDateString('it-IT', {
-    day: 'numeric', month: 'long', year: 'numeric',
+    day:   'numeric',
+    month: 'long',
+    year:  'numeric',
   });
   const formattedTime = published.toLocaleTimeString('it-IT', {
-    hour: '2-digit', minute: '2-digit',
+    hour:   '2-digit',
+    minute: '2-digit',
   });
   const label = isModified ? 'Modificato:' : 'Pubblicato:';
 
-  // Chiude solo il PostModal, mantenendo aperto il DetailPostPage
+  const closeTimer = useRef(null);
+
+    useEffect(() => {
+    return () => {
+      if (closeTimer.current) clearTimeout(closeTimer.current);
+    };
+  }, []);
+
   const handleEditClose = () => setIsEditing(false);
+
+  const handleDelete = () => {
+    if (!ready || !socket) {
+      return alert('Connessione non pronta. Riprova tra un attimo.');
+    }
+    if (!window.confirm('Eliminare definitivamente questo post?')) return;
+
+    socket.emit('deletePost', { postId: post.id }, response => {
+      if (response.success) {
+        // dispatch diretto: aggiorna deletedIds in store
+        dispatch(postDeleted(post.id));
+        // se hai bisogno di far fare qualcos'altro al parent:
+        onDelete?.(post.id);
+        closeTimer.current = setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
+        alert(`Errore: ${response.error?.message || 'Impossibile cancellare il post'}`);
+      }
+    });
+  };
 
   return (
     <>
       <Modal onClose={onClose} className={styles['detail-modal']}>
         <article className={styles.post}>
           <header className={styles.header}>
-            <h1 className={styles.title}>{post.title}</h1>
-            {canEdit && (
-              <button
-                className={styles.editBtn}
-                onClick={() => setIsEditing(true)}
-                aria-label="Modifica post"
-              >
-                <FiEdit />
-              </button>
-            )}
+            <div className={styles.headerTop}>
+              <h1 className={styles.title}>{post.title}</h1>
+
+              {isDeleted && (
+                <span className={styles.deletedBadge}>
+                  Post già eliminato
+                </span>
+              )}
+
+              {canEdit && (
+                <div className={styles.controls}>
+                  <button
+                    className={styles.editBtn}
+                    onClick={() => setIsEditing(true)}
+                    aria-label="Modifica post"
+                  >
+                    <FiEdit />
+                  </button>
+                  <button
+                    className={styles.deleteBtn}
+                    onClick={handleDelete}
+                    aria-label="Elimina post"
+                  >
+                    <FiTrash2 />
+                  </button>
+                </div>
+              )}
+            </div>
+
             {post.tags?.length > 0 && (
               <div className={styles.tags}>
                 {post.tags.map(tag => (
@@ -56,6 +113,7 @@ const DetailPostPage = ({ post: _post, onClose }) => {
                 ))}
               </div>
             )}
+
             <div className={styles.meta}>
               <span>di ID {post.authorId}</span>
               <span>

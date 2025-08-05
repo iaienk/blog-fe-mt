@@ -1,7 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as postService from "../services/post.service";
 
-// thunk per caricare i post via REST
+// Carica da localStorage gli ID già eliminati in sessioni precedenti
+const persistedDeletedIds = (() => {
+  try {
+    const raw = window.localStorage.getItem("deletedPosts");
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+})();
+
+// Thunk per caricare i post via REST
 export const fetchPosts = createAsyncThunk(
   "posts/fetchAll",
   async (params, thunkAPI) => {
@@ -14,36 +24,60 @@ export const fetchPosts = createAsyncThunk(
   }
 );
 
+const initialState = {
+  items: [],            // tutti i post
+  modifiedIds: [],      // id modificati in questa sessione
+  deletedIds: persistedDeletedIds,  // id cancellati, persiste tra refresh
+  status: "idle",       // 'idle' | 'loading' | 'succeeded' | 'failed'
+  error: null,
+};
+
 const postSlice = createSlice({
   name: "posts",
-  initialState: {
-    items: [],
-    modifiedIds: [],   // <— array di id modificati in questa sessione
-    status: "idle",    // 'idle' | 'loading' | 'succeeded' | 'failed'
-    error: null,
-  },
+  initialState,
   reducers: {
-    postUpdated: (state, action) => {
+    postUpdated(state, action) {
       const updated = action.payload;
-      // 1) sostituisco il post in items
       const idx = state.items.findIndex(p => p.id === updated.id);
       if (idx !== -1) {
         state.items[idx] = { ...state.items[idx], ...updated };
       }
-      // 2) marcalo come modificato
       if (!state.modifiedIds.includes(updated.id)) {
         state.modifiedIds.push(updated.id);
       }
-    }
+    },
+    postDeleted(state, action) {
+      const deletedId = action.payload;
+      if (!state.deletedIds.includes(deletedId)) {
+        state.deletedIds.push(deletedId);
+        // salva subito la lista aggiornata in localStorage
+      try {
+        window.localStorage.setItem(
+          "deletedPosts",
+          JSON.stringify(state.deletedIds)
+        );
+      } catch (err) {
+        console.warn("Could not persist deletedPosts to localStorage", err);
+      }
+      }
+      // rimuovo da modifiedIds se presente
+      state.modifiedIds = state.modifiedIds.filter(id => id !== deletedId);
+      // marca anche lo status nell’array items (se già caricato)
+      const idx = state.items.findIndex(p => p.id === deletedId);
+      if (idx !== -1) {
+        state.items[idx].status = "deleted";
+      }
+    },
   },
   extraReducers: builder => {
     builder
       .addCase(fetchPosts.pending, state => {
         state.status = "loading";
-        state.error = null;
+        state.error  = null;
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
         state.status = "succeeded";
+        // 1) estraggo l'array reale dei post dal payload
         let postsArray = [];
         const payload = action.payload;
         if (Array.isArray(payload)) {
@@ -55,23 +89,35 @@ const postSlice = createSlice({
         } else if (payload.posts && Array.isArray(payload.posts)) {
           postsArray = payload.posts;
         }
-        // mappatura base
-        state.items = postsArray.map(p => ({
-          ...p,
-          image: p.image || p.imageUrl || ""
-        }));
-        // NOTA: non tocchiamo modifiedIds su fetchAll
+        // 2) mappa _id → id, include tutti i campi di interesse
+        state.items = postsArray.map(p => {
+          const id = p._id || p.id;
+          return {
+            id,
+            title:       p.title,
+            content:     p.content,
+            authorId:    p.authorId,
+            publishDate: p.publishDate,
+            image:       p.image || p.imageUrl || "",
+            tags:        Array.isArray(p.tags) ? p.tags : [],
+            // 3) se era in deletedIds, marca status
+            status: state.deletedIds.includes(id) ? "deleted" : "",
+          };
+        });
       })
       .addCase(fetchPosts.rejected, (state, action) => {
         state.status = "failed";
-        state.error = action.payload ?? action.error.message;
+        state.error  = action.payload ?? action.error.message;
       });
   }
 });
 
-export const { postUpdated } = postSlice.actions;
-export const selectAllPosts   = state => state.posts.items;
+export const { postUpdated, postDeleted } = postSlice.actions;
+
+// Selectors
+export const selectAllPosts    = state => state.posts.items;
 export const selectModifiedIds = state => state.posts.modifiedIds;
+export const selectDeletedIds  = state => state.posts.deletedIds;
 export const selectPostsStatus = state => state.posts.status;
 export const selectPostsError  = state => state.posts.error;
 
