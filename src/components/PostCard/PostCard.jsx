@@ -1,16 +1,15 @@
-// src/components/PostCard/PostCard.jsx
 import React from 'react';
-import { useSelector } from 'react-redux';
-import { userSelector }     from '../../reducers/user.slice';
+import { useSelector }       from 'react-redux';
+import { userSelector }      from '../../reducers/user.slice';
 import { selectModifiedIds } from '../../reducers/post.slice';
-import styles from './PostCard.module.scss';
+import styles                from './PostCard.module.scss';
 
 const PostCard = ({ post, onEdit, onViewDetail }) => {
   const { id, title, content, authorId, publishDate, image } = post;
   const userId      = useSelector(userSelector)?.id;
   const modifiedIds = useSelector(selectModifiedIds);
 
-  // Mostra "Modificato:" solo se l'id è presente in modifiedIds
+  // Determina se mostrare "Modificato:" o "Pubblicato:"
   const isModified = modifiedIds.includes(id);
   const label      = isModified ? 'Modificato:' : 'Pubblicato:';
 
@@ -29,32 +28,22 @@ const PostCard = ({ post, onEdit, onViewDetail }) => {
   const imageUrl    = image || placeholder;
 
   return (
-    <div className={styles.card}>
+    <div
+      className={styles.card}
+      onClick={() => onViewDetail?.(post)}
+      style={{ cursor: onViewDetail ? 'pointer' : undefined }}
+    >
       <div className={styles.header}>
         <span className={styles.name}>Autore ID: {authorId}</span>
       </div>
 
-      <img
-        src={imageUrl}
-        alt={title}
-        className={styles.image}
-        onClick={() => onViewDetail?.(post)}
-        style={{ cursor: onViewDetail ? 'pointer' : 'default' }}
-      />
+      <img src={imageUrl} alt={title} className={styles.image} />
 
-      <h2
-        className={styles.title}
-        onClick={() => onViewDetail?.(post)}
-        style={{ cursor: onViewDetail ? 'pointer' : 'default' }}
-      >
-        {title}
-      </h2>
+      <h2 className={styles.title}>{title}</h2>
 
       <div
         className={styles.content}
         dangerouslySetInnerHTML={{ __html: content }}
-        onClick={() => onViewDetail?.(post)}
-        style={{ cursor: onViewDetail ? 'pointer' : 'default' }}
       />
 
       <div className={styles.footer}>
@@ -62,16 +51,14 @@ const PostCard = ({ post, onEdit, onViewDetail }) => {
       </div>
 
       <div className={styles.actions}>
-        <button
-          className={styles.viewButton}
-          onClick={() => onViewDetail?.(post)}
-        >
-          🔍
-        </button>
         {userId === authorId && (
           <button
             className={styles.editButton}
-            onClick={() => onEdit?.(post)}
+            onClick={e => {
+              e.stopPropagation();  // impedisce di aprire il dettaglio
+              onEdit?.(post);
+            }}
+            aria-label="Modifica post"
           >
             ✏️
           </button>
