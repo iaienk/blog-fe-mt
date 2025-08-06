@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import * as postService from "../services/post.service";
 
 // Carica da localStorage gli ID già eliminati in sessioni precedenti
@@ -50,19 +50,16 @@ const postSlice = createSlice({
       const deletedId = action.payload;
       if (!state.deletedIds.includes(deletedId)) {
         state.deletedIds.push(deletedId);
-        // salva subito la lista aggiornata in localStorage
-      try {
-        window.localStorage.setItem(
-          "deletedPosts",
-          JSON.stringify(state.deletedIds)
-        );
-      } catch (err) {
-        console.warn("Could not persist deletedPosts to localStorage", err);
+        try {
+          window.localStorage.setItem(
+            "deletedPosts",
+            JSON.stringify(state.deletedIds)
+          );
+        } catch (err) {
+          console.warn("Could not persist deletedPosts to localStorage", err);
+        }
       }
-      }
-      // rimuovo da modifiedIds se presente
       state.modifiedIds = state.modifiedIds.filter(id => id !== deletedId);
-      // marca anche lo status nell’array items (se già caricato)
       const idx = state.items.findIndex(p => p.id === deletedId);
       if (idx !== -1) {
         state.items[idx].status = "deleted";
@@ -77,7 +74,6 @@ const postSlice = createSlice({
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
         state.status = "succeeded";
-        // 1) estraggo l'array reale dei post dal payload
         let postsArray = [];
         const payload = action.payload;
         if (Array.isArray(payload)) {
@@ -89,7 +85,6 @@ const postSlice = createSlice({
         } else if (payload.posts && Array.isArray(payload.posts)) {
           postsArray = payload.posts;
         }
-        // 2) mappa _id → id, include tutti i campi di interesse
         state.items = postsArray.map(p => {
           const id = p._id || p.id;
           return {
@@ -100,8 +95,7 @@ const postSlice = createSlice({
             publishDate: p.publishDate,
             image:       p.image || p.imageUrl || "",
             tags:        Array.isArray(p.tags) ? p.tags : [],
-            // 3) se era in deletedIds, marca status
-            status: state.deletedIds.includes(id) ? "deleted" : "",
+            status:      state.deletedIds.includes(id) ? "deleted" : "",
           };
         });
       })
@@ -114,10 +108,23 @@ const postSlice = createSlice({
 
 export const { postUpdated, postDeleted } = postSlice.actions;
 
-// Selectors
-export const selectAllPosts    = state => state.posts.items;
+// Base selector sullo slice
+const selectPostsState = state => state.posts;
+
+// Memoized selectors
+export const selectAllPosts = createSelector(
+  [selectPostsState],
+  postsState => postsState.items
+);
+
+export const selectDeletedIds = createSelector(
+  [selectPostsState],
+  postsState => postsState.deletedIds
+);
+
+// Questi possono restare semplici se non causano warning,
+// oppure memoizzarli allo stesso modo se preferisci:
 export const selectModifiedIds = state => state.posts.modifiedIds;
-export const selectDeletedIds  = state => state.posts.deletedIds;
 export const selectPostsStatus = state => state.posts.status;
 export const selectPostsError  = state => state.posts.error;
 
