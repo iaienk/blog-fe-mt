@@ -1,14 +1,14 @@
 // src/components/DetailPostPage/DetailPostPage.jsx
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useSelector, useDispatch }       from 'react-redux';
-import Modal                              from '../Modal/Modal';
-import styles                             from './DetailPostPage.module.scss';
-import { userSelector }                   from '../../reducers/user.slice';
+import { useSelector, useDispatch }     from 'react-redux';
+import Modal                            from '../Modal/Modal';
+import styles                           from './DetailPostPage.module.scss';
+import { userSelector }                 from '../../reducers/user.slice';
 import {
   selectAllPosts,
   selectDeletedIds,
   postDeleted
-}                                        from '../../reducers/post.slice';
+}                                      from '../../reducers/post.slice';
 import {
   commentsLoaded,
   commentAdded,
@@ -16,12 +16,12 @@ import {
   commentRemoved,
   makeSelectCommentsByPost,
   makeSelectCommentCountByPost
-}                                        from '../../reducers/comment.slice';
-import { FiEdit, FiTrash2 }               from 'react-icons/fi';
-import { PostModal }                      from '../PostModal/PostModal';
-import { useSocketContext }               from '../../context/SocketProvider';
-import CommentList                        from '../../components/Comments/CommentList';
-import CommentForm                        from '../../components/Comments/CommentForm';
+}                                      from '../../reducers/comment.slice';
+import { FiEdit, FiTrash2 }             from 'react-icons/fi';
+import { PostModal }                    from '../PostModal/PostModal';
+import { useSocketContext }             from '../../context/SocketProvider';
+import CommentList                      from '../../components/Comments/CommentList';
+import CommentForm                      from '../../components/Comments/CommentForm';
 
 export default function DetailPostPage({ post: _post, onClose, onDelete }) {
   const dispatch   = useDispatch();
@@ -30,14 +30,16 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
   const deletedIds = useSelector(selectDeletedIds);
   const { socket, ready } = useSocketContext();
 
+  // Usa la versione aggiornata dal store
   const post = allPosts.find(p => p.id === _post.id) || _post;
 
+  // Memoized selectors per comments e count
   const selectCommentsByPost     = useMemo(makeSelectCommentsByPost, []);
   const selectCommentCountByPost = useMemo(makeSelectCommentCountByPost, []);
   const comments = useSelector(s => selectCommentsByPost(s, post.id));
   const count    = useSelector(s => selectCommentCountByPost(s, post.id));
 
-  // load comments once logged in
+  // Carica commenti via REST quando ready
   useEffect(() => {
     if (!ready) return;
     fetch(`${import.meta.env.VITE_API_URL}/posts/${post.id}/comments`)
@@ -51,22 +53,24 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
       .catch(err => console.error('Errore caricamento commenti', err));
   }, [post.id, ready, dispatch]);
 
-  // real-time
+  // Real-time: stanza e eventi in minuscolo
   useEffect(() => {
     if (!ready || !socket) return;
-    socket.emit('JOIN_POST_ROOM', { postId: post.id });
-    socket.on('COMMENT_CREATED',   c => dispatch(commentAdded(c)));
-    socket.on('COMMENT_SHARED',    c => dispatch(commentAdded(c)));
-    socket.on('COMMENT_UPDATED',   c => dispatch(commentUpdated(c)));
-    socket.on('COMMENT_DELETED',   ({ comment }) =>
+    socket.emit('joinPostRoom', { postId: post.id });
+
+    socket.on('commentCreated',   c => dispatch(commentAdded(c)));
+    socket.on('commentShared',    c => dispatch(commentAdded(c)));
+    socket.on('commentUpdated',   c => dispatch(commentUpdated(c)));
+    socket.on('commentDeleted',   ({ comment }) =>
       dispatch(commentRemoved({ postId: post.id, commentId: comment._id }))
     );
+
     return () => {
-      socket.emit('LEAVE_POST_ROOM', { postId: post.id });
-      socket.off('COMMENT_CREATED');
-      socket.off('COMMENT_SHARED');
-      socket.off('COMMENT_UPDATED');
-      socket.off('COMMENT_DELETED');
+      socket.emit('leavePostRoom', { postId: post.id });
+      socket.off('commentCreated');
+      socket.off('commentShared');
+      socket.off('commentUpdated');
+      socket.off('commentDeleted');
     };
   }, [ready, socket, post.id, dispatch]);
 
@@ -115,14 +119,13 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
     <>
       <Modal onClose={onClose} className={styles['detail-modal']}>
         <article className={styles.post}>
+
           {/* HEADER */}
           <header className={styles.header}>
             <div className={styles.headerTop}>
               <h1 className={styles.title}>{post.title}</h1>
               {isDeleted && (
-                <span className={styles.deletedBadge}>
-                  Post già eliminato
-                </span>
+                <span className={styles.deletedBadge}>Post già eliminato</span>
               )}
               {canEdit && !isDeleted && (
                 <div className={styles.controls}>
@@ -144,6 +147,7 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
               )}
             </div>
 
+            {/* TAGS */}
             {post.tags?.length > 0 && (
               <div className={styles.tags}>
                 {post.tags.map(tag => (
@@ -152,6 +156,7 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
               </div>
             )}
 
+            {/* META */}
             <div className={styles.meta}>
               <span>di ID {post.authorId}</span>
               <span>

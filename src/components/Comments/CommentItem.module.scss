@@ -1,11 +1,12 @@
-// src/components/Comments/CommentItem.module.scss
+/* src/components/Comments/CommentItem.module.scss */
 
 .item {
-  background: #fff;
-  box-shadow: 0 4px 2px rgba(0, 0, 0, 0.3);
-  border-radius: 4px;
+  list-style: none;
   margin-bottom: 1rem;
-  padding: 1rem;
+  padding: 0.75rem;
+  background: #fff;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 .header {
@@ -17,55 +18,70 @@
 
 .creator {
   display: flex;
-  align-items: center;
   gap: 0.25rem;
+  align-items: baseline;
 }
 
 .authorLabel {
-  font-weight: bold;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
 }
 
 .author {
-  color: #333;
+  font-weight: 600;
+  color: var(--text-color);
 }
 
 .date {
-  color: #666;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  color: var(--secondary-color);
 }
 
 .text {
   margin: 0.5rem 0;
-  white-space: pre-wrap;
+  color: var(--text-color);
+  line-height: 1.4;
+}
+
+.editArea {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 6rem;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  resize: vertical;
 }
 
 .controls {
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
-.editBtn,
-.deleteBtn {
-  background: none;
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.editButton,
+.deleteButton {
+  background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 1.1rem;
   padding: 0.25rem;
+  color: var(--text-color);
 }
 
-.editBtn:hover,
-.deleteBtn:hover {
-  color: #1976d2;
-}
-
-.textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  resize: vertical;
-  font-size: 1rem;
+.editButton:hover,
+.deleteButton:hover {
+  color: var(--primary-color);
 }

@@ -104,7 +104,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
 
       {/* HEADER */}
       <div className={styles.header}>
-        <span className={styles.name}>Autore ID: {authorId}</span>
+        <span className={styles.name}>Created by: {authorId}</span>
         {userId === authorId && !isDeleted && (
           <div className={styles.actions}>
             <button
