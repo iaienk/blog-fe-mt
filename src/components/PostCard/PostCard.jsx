@@ -1,12 +1,13 @@
 // src/components/PostCard/PostCard.jsx
-import React, { useMemo }               from 'react';
-import { useSelector }                  from 'react-redux';
+import React, { useMemo, useEffect }    from 'react';
+import { useSelector, useDispatch }     from 'react-redux';
 import { userSelector }                 from '../../reducers/user.slice';
 import { selectModifiedIds,
          selectDeletedIds }             from '../../reducers/post.slice';
 import {
   makeSelectCommentsByPost,
-  makeSelectCommentCountByPost
+  makeSelectCommentCountByPost,
+  commentsLoaded
 }                                       from '../../reducers/comment.slice';
 import { FiTrash2, FiEdit }             from 'react-icons/fi';
 import { useSocketContext }             from '../../context/SocketProvider';
@@ -14,6 +15,7 @@ import commentStyles                    from '../Comments/CommentItem.module.scs
 import styles                           from './PostCard.module.scss';
 
 const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
+  const dispatch     = useDispatch();
   const { id, title, content, authorId, publishDate, image, tags = [] } = post;
   const userId       = useSelector(userSelector)?.id;
   const modifiedIds  = useSelector(selectModifiedIds);
@@ -25,6 +27,19 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
   const selectCommentCount = useMemo(makeSelectCommentCountByPost, []);
   const comments           = useSelector(state => selectComments(state, id));
   const commentCount       = useSelector(state => selectCommentCount(state, id));
+
+  // Carica i commenti per mostrare count e preview
+  useEffect(() => {
+    fetch(`${import.meta.env.VITE_API_URL}/posts/${id}/comments`)
+      .then(res => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then(data => {
+        dispatch(commentsLoaded({ postId: id, comments: data.comments }));
+      })
+      .catch(err => console.error('Errore caricamento commenti PostCard', err));
+  }, [id, dispatch]);
 
   const isDeleted  = deletedIds.includes(id);
   const isModified = modifiedIds.includes(id);
@@ -142,7 +157,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
               <div className={commentStyles.creator}>
                 <span className={commentStyles.authorLabel}>Created by:</span>
                 <span className={commentStyles.author}>
-                  {lastComment.authorUsername} (ID: {lastComment.authorId})
+                  {lastComment.authorUsername} {lastComment.authorId}
                 </span>
               </div>
               <span className={commentStyles.date}>{commentDate}</span>
