@@ -141,6 +141,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           <input
             type="text"
             value={title}
+            placeholder="Digita per inserire un titolo"
             onChange={e => setTitle(e.target.value)}
           />
         </label>

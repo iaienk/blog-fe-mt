@@ -1,3 +1,4 @@
+// src/reducers/post.slice.js
 import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import * as postService from "../services/post.service";
 
@@ -96,6 +97,19 @@ const postSlice = createSlice({
             image:       p.image || p.imageUrl || "",
             tags:        Array.isArray(p.tags) ? p.tags : [],
             status:      state.deletedIds.includes(id) ? "deleted" : "",
+            // nuovi campi per like
+            total_likes: typeof p.total_likes === "number"
+                         ? p.total_likes
+                         : typeof p.likesCount === "number"
+                           ? p.likesCount
+                           : 0,
+            liked_by:    Array.isArray(p.liked_by)
+                              ? p.liked_by
+                              : Array.isArray(p.likedBy)
+                                ? p.likedBy
+                                : Array.isArray(p.userIds)
+                                  ? p.userIds
+                                  : []
           };
         });
       })
@@ -122,8 +136,7 @@ export const selectDeletedIds = createSelector(
   postsState => postsState.deletedIds
 );
 
-// Questi possono restare semplici se non causano warning,
-// oppure memoizzarli allo stesso modo se preferisci:
+// Questi possono restare semplici
 export const selectModifiedIds = state => state.posts.modifiedIds;
 export const selectPostsStatus = state => state.posts.status;
 export const selectPostsError  = state => state.posts.error;

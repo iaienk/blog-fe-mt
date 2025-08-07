@@ -18,53 +18,56 @@ import {
   makeSelectCommentCountByPost
 }                                      from '../../reducers/comment.slice';
 import { FiEdit, FiTrash2 }             from 'react-icons/fi';
-import { PostModal }                    from '../PostModal/PostModal';
 import { useSocketContext }             from '../../context/SocketProvider';
+import LikeButton                       from '../Likes/LikesButton';
 import CommentList                      from '../../components/Comments/CommentList';
 import CommentForm                      from '../../components/Comments/CommentForm';
+import { PostModal }                    from '../PostModal/PostModal';
 
 export default function DetailPostPage({ post: _post, onClose, onDelete }) {
   const dispatch   = useDispatch();
   const user       = useSelector(userSelector);
+  const userId     = user?.id;
   const allPosts   = useSelector(selectAllPosts);
   const deletedIds = useSelector(selectDeletedIds);
   const { socket, ready } = useSocketContext();
 
-  // Usa la versione aggiornata dal store
+  // Use the up-to-date post from store
   const post = allPosts.find(p => p.id === _post.id) || _post;
 
-  // Memoized selectors per comments e count
+  // --- Likes setup ---
+  const {
+    total_likes = 0,
+    liked_by = []
+  } = post;
+  const initialLiked = userId ? liked_by.includes(userId) : false;
+
+  // --- Comments setup ---
   const selectCommentsByPost     = useMemo(makeSelectCommentsByPost, []);
   const selectCommentCountByPost = useMemo(makeSelectCommentCountByPost, []);
   const comments = useSelector(s => selectCommentsByPost(s, post.id));
   const count    = useSelector(s => selectCommentCountByPost(s, post.id));
 
-  // Carica commenti via REST quando ready
   useEffect(() => {
     if (!ready) return;
     fetch(`${import.meta.env.VITE_API_URL}/posts/${post.id}/comments`)
       .then(res => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) throw new Error(res.status);
         return res.json();
       })
-      .then(data => {
-        dispatch(commentsLoaded({ postId: post.id, comments: data.comments }));
-      })
+      .then(data => dispatch(commentsLoaded({ postId: post.id, comments: data.comments })))
       .catch(err => console.error('Errore caricamento commenti', err));
   }, [post.id, ready, dispatch]);
 
-  // Real-time: stanza e eventi in minuscolo
   useEffect(() => {
     if (!ready || !socket) return;
     socket.emit('joinPostRoom', { postId: post.id });
-
     socket.on('commentCreated',   c => dispatch(commentAdded(c)));
     socket.on('commentShared',    c => dispatch(commentAdded(c)));
     socket.on('commentUpdated',   c => dispatch(commentUpdated(c)));
     socket.on('commentDeleted',   ({ comment }) =>
       dispatch(commentRemoved({ postId: post.id, commentId: comment._id }))
     );
-
     return () => {
       socket.emit('leavePostRoom', { postId: post.id });
       socket.off('commentCreated');
@@ -76,7 +79,7 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
 
   // POST UI LOGIC
   const [isEditing, setIsEditing] = useState(false);
-  const canEdit   = user?.id === post.authorId;
+  const canEdit   = userId === post.authorId;
   const isDeleted = deletedIds.includes(post.id);
 
   const placeholder   =
@@ -119,14 +122,11 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
     <>
       <Modal onClose={onClose} className={styles['detail-modal']}>
         <article className={styles.post}>
-
           {/* HEADER */}
           <header className={styles.header}>
             <div className={styles.headerTop}>
               <h1 className={styles.title}>{post.title}</h1>
-              {isDeleted && (
-                <span className={styles.deletedBadge}>Post già eliminato</span>
-              )}
+              {isDeleted && <span className={styles.deletedBadge}>Post già eliminato</span>}
               {canEdit && !isDeleted && (
                 <div className={styles.controls}>
                   <button
@@ -156,12 +156,15 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
               </div>
             )}
 
-            {/* META */}
+            {/* META & LIKES */}
             <div className={styles.meta}>
               <span>di ID {post.authorId}</span>
-              <span>
-                {label} {formattedDate} alle {formattedTime}
-              </span>
+              <span>{label} {formattedDate} alle {formattedTime}</span>
+              <LikeButton
+                postId={post.id}
+                initialLiked={initialLiked}
+                initialCount={total_likes}
+              />
             </div>
           </header>
 
@@ -188,11 +191,7 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
       </Modal>
 
       {isEditing && (
-        <PostModal
-          mode="edit"
-          initialData={post}
-          onClose={handleEditClose}
-        />
+        <PostModal mode="edit" initialData={post} onClose={handleEditClose} />
       )}
     </>
   );

@@ -1,34 +1,48 @@
 // src/components/PostCard/PostCard.jsx
-import React, { useMemo, useEffect }    from 'react';
-import { useSelector, useDispatch }     from 'react-redux';
-import { userSelector }                 from '../../reducers/user.slice';
-import { selectModifiedIds,
-         selectDeletedIds }             from '../../reducers/post.slice';
+import React, { useMemo, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { userSelector } from '../../reducers/user.slice';
+import { selectModifiedIds, selectDeletedIds } from '../../reducers/post.slice';
 import {
   makeSelectCommentsByPost,
   makeSelectCommentCountByPost,
   commentsLoaded
-}                                       from '../../reducers/comment.slice';
-import { FiTrash2, FiEdit }             from 'react-icons/fi';
-import { useSocketContext }             from '../../context/SocketProvider';
-import commentStyles                    from '../Comments/CommentItem.module.scss';
-import styles                           from './PostCard.module.scss';
+} from '../../reducers/comment.slice';
+import { FiTrash2, FiEdit } from 'react-icons/fi';
+import { useSocketContext } from '../../context/SocketProvider';
+import LikeButton from '../Likes/LikesButton';
+import commentStyles from '../Comments/CommentItem.module.scss';
+import styles from './PostCard.module.scss';
 
 const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
-  const dispatch     = useDispatch();
-  const { id, title, content, authorId, publishDate, image, tags = [] } = post;
-  const userId       = useSelector(userSelector)?.id;
-  const modifiedIds  = useSelector(selectModifiedIds);
-  const deletedIds   = useSelector(selectDeletedIds);
+  const dispatch    = useDispatch();
+  const userId      = useSelector(userSelector)?.id;
+  const modifiedIds = useSelector(selectModifiedIds);
+  const deletedIds  = useSelector(selectDeletedIds);
   const { socket, ready } = useSocketContext();
 
-  // memoized selectors per commenti
+  const {
+    id,
+    title,
+    content,
+    authorId,
+    publishDate,
+    image,
+    tags = [],
+    total_likes = 0,
+    liked_by = []
+  } = post;
+
+  // Determine if current user has liked (may always be false if backend omits liked_by)
+  const initialLiked = userId ? liked_by.includes(userId) : false;
+
+  // Comment selectors
   const selectComments     = useMemo(makeSelectCommentsByPost, []);
   const selectCommentCount = useMemo(makeSelectCommentCountByPost, []);
   const comments           = useSelector(state => selectComments(state, id));
   const commentCount       = useSelector(state => selectCommentCount(state, id));
 
-  // Carica i commenti per mostrare count e preview
+  // Load comments for preview and count
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/posts/${id}/comments`)
       .then(res => {
@@ -45,6 +59,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
   const isModified = modifiedIds.includes(id);
   const label      = isModified ? 'Modificato:' : 'Pubblicato:';
 
+  // Format publication date/time
   const dateObj       = new Date(publishDate);
   const formattedDate = dateObj.toLocaleDateString('it-IT', {
     day:   'numeric',
@@ -59,6 +74,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
   const placeholder = 'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753866488/placeholder-image.png';
   const imageUrl    = image || placeholder;
 
+  // Handle post deletion via socket
   const handleDelete = e => {
     e.stopPropagation();
     if (!ready || !socket) {
@@ -74,19 +90,15 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
     });
   };
 
-  // ultimo commento
-  const lastComment = comments.length > 0
-    ? comments[comments.length - 1]
-    : null;
-
-  // formattazione data/ora commento
+  // Last comment preview
+  const lastComment = comments.length > 0 ? comments[comments.length - 1] : null;
   const commentDate = lastComment
     ? `${new Date(lastComment.created_at).toLocaleDateString('it-IT', {
-         day:   '2-digit',
+         day: '2-digit',
          month: '2-digit',
-         year:  'numeric'
+         year: 'numeric'
        })} alle ${new Date(lastComment.created_at).toLocaleTimeString('it-IT', {
-         hour:   '2-digit',
+         hour: '2-digit',
          minute: '2-digit'
        })}`
     : '';
@@ -97,13 +109,9 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
       onClick={() => onViewDetail?.(post)}
       style={{ cursor: onViewDetail ? 'pointer' : undefined }}
     >
-      {isDeleted && (
-        <div className={styles.deletedBadge}>
-          Post già eliminato
-        </div>
-      )}
+      {isDeleted && <div className={styles.deletedBadge}>Post già eliminato</div>}
 
-      {/* HEADER */}
+      {/* Header */}
       <div className={styles.header}>
         <span className={styles.name}>Created by: {authorId}</span>
         {userId === authorId && !isDeleted && (
@@ -126,7 +134,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
         )}
       </div>
 
-      {/* TAGS */}
+      {/* Tags */}
       {tags.length > 0 && (
         <div className={styles.tags}>
           {tags.map(tag => (
@@ -135,22 +143,32 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
         </div>
       )}
 
+      {/* Image */}
       <img src={imageUrl} alt={title} className={styles.image} />
 
+      {/* Title & Content */}
       <h2 className={styles.title}>{title}</h2>
       <div
         className={styles.content}
         dangerouslySetInnerHTML={{ __html: content }}
       />
 
+      {/* Footer */}
       <div className={styles.footer}>
         {label} {formattedDate} alle {formattedTime}
       </div>
 
-      <div className={styles.commentsMeta}>
-        Commenti: {commentCount}
+      {/* Like & Comment Count */}
+      <div className={styles.metaRow}>
+        <LikeButton
+          postId={id}
+          initialLiked={initialLiked}
+          initialCount={total_likes}
+        />
+        <span className={styles.commentsMeta}>Commenti: {commentCount}</span>
       </div>
 
+      {/* Last Comment Preview */}
       {userId && lastComment && (
         <div className={styles.preview}>
           <div className={commentStyles.item}>
