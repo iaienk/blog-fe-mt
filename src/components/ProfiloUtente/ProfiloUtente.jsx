@@ -253,17 +253,22 @@ export default function ProfiloUtente() {
           <div className={styles.postsList}>
             <h3>I tuoi post</h3>
             {postsStatus === 'loading' && <p>Caricamento post…</p>}
-            {postsStatus === 'succeeded' && sortedUserPosts.length > 0 &&
-              sortedUserPosts.map(p => (
-                <PostCard
-                  key={p.id}
-                  post={p}
-                  onViewDetail={handleViewDetail}
-                  onEdit={handleEdit}
-                  onDelete={handleDelete}
-                />
-              ))
-            }
+
+            {postsStatus === 'succeeded' && sortedUserPosts.length > 0 && (
+              <div className={styles.postsGrid}>
+                {sortedUserPosts.map(p => (
+                  <div key={p.id} className={styles.postItem}>
+                    <PostCard
+                      post={p}
+                      onViewDetail={handleViewDetail}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
             {postsStatus === 'succeeded' && sortedUserPosts.length === 0 && (
               <p>Non hai ancora creato post.</p>
             )}

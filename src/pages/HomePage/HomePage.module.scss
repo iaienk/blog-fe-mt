@@ -1,14 +1,18 @@
-.list {
-  
+.container {
   display: flex;
   flex-direction: column;
-  align-items: center;      // centra orizzontalmente le card
-  gap:1rem;                // spazio tra le card
-  padding: 2rem 0;          // padding verticale
+  align-items: center; // centra orizzontalmente il contenuto
+  padding: 2rem;
 }
 
-// opzionale: se vuoi limitare la larghezza massima delle card
-.listItem {
+
+.list {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; // centra verticalmente le card
+  align-items: center;      // centra orizzontalmente le card
+  gap:1rem;                // spazio tra le card
+  padding: 2rem 0;
+  max-width: 900px; 
   width: 100%;
-  max-width: 600px;         // scegli tu il max
 }

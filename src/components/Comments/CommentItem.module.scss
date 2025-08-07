@@ -6,22 +6,28 @@
   padding: 0.75rem;
   background-color: var(--bg-color);
   border-radius: 4px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
 
 .header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  justify-content: left;
   margin-bottom: 0.5rem;
 }
 
 .creator {
   display: flex;
+  flex-direction: column;
   gap: 0.25rem;
   align-items: baseline;
 }
 
+.date {
+  font-size: 0.75rem;
+  text-align: right;
+  color: var(--text-color);;
+}
 .authorLabel {
   font-size: 0.75rem;
   color: var(--text-color);
@@ -32,10 +38,6 @@
   color: var(--text-color);
 }
 
-.date {
-  font-size: 0.75rem;
-  color: var(--text-color);;
-}
 
 .text {
   margin: 0.5rem 0;

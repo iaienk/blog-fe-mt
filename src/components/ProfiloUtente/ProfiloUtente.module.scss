@@ -3,7 +3,7 @@
 .containerProfilo {
   @include card-style;
 
-  max-width: 900px;
+  max-width: 1200px;
   margin: 4rem auto;
   padding: 2rem;
   background-color: var(--card-bg);
@@ -184,4 +184,32 @@
   color: var(--accent-color);
   margin: 0.75rem 0;
   font-weight: 500;
+}
+
+.postsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;  /* allinea a sinistra come su Instagram */
+  width: 100%;
+  max-width: 1200px;             /* container si ferma a 1000px */
+  margin: 0 auto;                /* centra orizzontalmente */
+}
+
+.postItem {
+  box-sizing: border-box;              
+  width: 360px;               /* larghezza fissa 310px */
+}
+
+/* Da 3 colonne (>1000px) a 2 colonne */
+@media (max-width: 1160px) {
+  .postItem {
+    flex: 0 0 calc(50% - 16px);  /* 2 items per riga, gap totale 16px */
+  }
+}
+
+/* Da 2 colonne a 1 sola (<650px) */
+@media (max-width: 775px) {
+  .postItem {
+    flex: 0 0 100%;               /* occupa tutta la riga */
+  }
 }
