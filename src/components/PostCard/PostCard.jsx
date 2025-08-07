@@ -81,13 +81,14 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
 
   // formattazione data/ora commento
   const commentDate = lastComment
-    ? new Date(lastComment.created_at).toLocaleString('it-IT', {
-        day:   '2-digit',
-        month: '2-digit',
-        year:  'numeric',
-        hour:  '2-digit',
-        minute:'2-digit'
-      })
+    ? `${new Date(lastComment.created_at).toLocaleDateString('it-IT', {
+         day:   '2-digit',
+         month: '2-digit',
+         year:  'numeric'
+       })} alle ${new Date(lastComment.created_at).toLocaleTimeString('it-IT', {
+         hour:   '2-digit',
+         minute: '2-digit'
+       })}`
     : '';
 
   return (
@@ -160,7 +161,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
                   {lastComment.authorUsername} {lastComment.authorId}
                 </span>
               </div>
-              <span className={commentStyles.date}>{commentDate}</span>
+              <span className={commentStyles.date}>Pubblicato: {commentDate}</span>
             </div>
             <p className={commentStyles.text}>{lastComment.text}</p>
           </div>

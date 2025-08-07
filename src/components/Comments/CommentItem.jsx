@@ -64,6 +64,17 @@ export default function CommentItem({ comment }) {
       }
     );
   };
+  
+  const published = new Date(comment.created_at);
+  const formattedDate = published.toLocaleDateString('it-IT', {
+    day:   '2-digit',
+    month: '2-digit',
+    year:  'numeric'
+  });
+  const formattedTime = published.toLocaleTimeString('it-IT', {
+    hour:   '2-digit',
+    minute: '2-digit'
+  });
 
   return (
     <li className={styles.item}>
@@ -75,10 +86,7 @@ export default function CommentItem({ comment }) {
           </span>
         </div>
         <span className={styles.date}>
-          {new Date(comment.created_at).toLocaleString('it-IT', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour:'2-digit', minute:'2-digit'
-          })}
+          Pubblicato il {formattedDate} alle {formattedTime}
         </span>
       </div>
 
