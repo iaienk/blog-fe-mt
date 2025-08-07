@@ -12,12 +12,12 @@ const persistedDeletedIds = (() => {
   }
 })();
 
-// Thunk per caricare i post via REST
+// Thunk per caricare i post via REST (cursor-based pagination)
 export const fetchPosts = createAsyncThunk(
   "posts/fetchAll",
   async (params, thunkAPI) => {
     try {
-      const result = await postService.getPosts(params);
+      const result = await postService.getPosts(params); // { posts, nextCursor, prevCursor }
       return result;
     } catch (err) {
       return thunkAPI.rejectWithValue(err.message);
@@ -26,11 +26,13 @@ export const fetchPosts = createAsyncThunk(
 );
 
 const initialState = {
-  items: [],            // tutti i post
-  modifiedIds: [],      // id modificati in questa sessione
-  deletedIds: persistedDeletedIds,  // id cancellati, persiste tra refresh
-  status: "idle",       // 'idle' | 'loading' | 'succeeded' | 'failed'
-  error: null,
+  items:        [],
+  modifiedIds:  [],
+  deletedIds:   persistedDeletedIds,
+  status:       "idle",
+  error:        null,
+  nextCursor:   null,
+  prevCursor:   null,
 };
 
 const postSlice = createSlice({
@@ -52,10 +54,7 @@ const postSlice = createSlice({
       if (!state.deletedIds.includes(deletedId)) {
         state.deletedIds.push(deletedId);
         try {
-          window.localStorage.setItem(
-            "deletedPosts",
-            JSON.stringify(state.deletedIds)
-          );
+          window.localStorage.setItem("deletedPosts", JSON.stringify(state.deletedIds));
         } catch (err) {
           console.warn("Could not persist deletedPosts to localStorage", err);
         }
@@ -66,6 +65,36 @@ const postSlice = createSlice({
         state.items[idx].status = "deleted";
       }
     },
+    setPosts(state, action) {
+      const { posts = [], nextCursor = null, prevCursor = null } = action.payload;
+      state.items = posts.map(p => {
+        const id = p._id || p.id;
+        return {
+          id,
+          title:       p.title,
+          content:     p.content,
+          authorId:    p.authorId,
+          publishDate: p.publishDate,
+          image:       p.image || p.imageUrl || "",
+          tags:        Array.isArray(p.tags) ? p.tags : [],
+          status:      state.deletedIds.includes(id) ? "deleted" : "",
+          total_likes: typeof p.total_likes === "number"
+                       ? p.total_likes
+                       : typeof p.likesCount === "number"
+                         ? p.likesCount
+                         : 0,
+          liked_by:    Array.isArray(p.liked_by)
+                            ? p.liked_by
+                            : Array.isArray(p.likedBy)
+                              ? p.likedBy
+                              : Array.isArray(p.userIds)
+                                ? p.userIds
+                                : []
+        };
+      });
+      state.nextCursor = nextCursor;
+      state.prevCursor = prevCursor;
+    },
   },
   extraReducers: builder => {
     builder
@@ -74,19 +103,8 @@ const postSlice = createSlice({
         state.error  = null;
       })
       .addCase(fetchPosts.fulfilled, (state, action) => {
-        state.status = "succeeded";
-        let postsArray = [];
-        const payload = action.payload;
-        if (Array.isArray(payload)) {
-          postsArray = payload;
-        } else if (payload.docs && Array.isArray(payload.docs)) {
-          postsArray = payload.docs;
-        } else if (payload.data && Array.isArray(payload.data)) {
-          postsArray = payload.data;
-        } else if (payload.posts && Array.isArray(payload.posts)) {
-          postsArray = payload.posts;
-        }
-        state.items = postsArray.map(p => {
+        const { posts = [], nextCursor = null, prevCursor = null } = action.payload;
+        state.items = posts.map(p => {
           const id = p._id || p.id;
           return {
             id,
@@ -97,7 +115,6 @@ const postSlice = createSlice({
             image:       p.image || p.imageUrl || "",
             tags:        Array.isArray(p.tags) ? p.tags : [],
             status:      state.deletedIds.includes(id) ? "deleted" : "",
-            // nuovi campi per like
             total_likes: typeof p.total_likes === "number"
                          ? p.total_likes
                          : typeof p.likesCount === "number"
@@ -112,6 +129,9 @@ const postSlice = createSlice({
                                   : []
           };
         });
+        state.nextCursor = nextCursor;
+        state.prevCursor = prevCursor;
+        state.status = "succeeded";
       })
       .addCase(fetchPosts.rejected, (state, action) => {
         state.status = "failed";
@@ -120,25 +140,17 @@ const postSlice = createSlice({
   }
 });
 
-export const { postUpdated, postDeleted } = postSlice.actions;
+export const { postUpdated, postDeleted, setPosts } = postSlice.actions;
 
-// Base selector sullo slice
+// Selectors
 const selectPostsState = state => state.posts;
 
-// Memoized selectors
-export const selectAllPosts = createSelector(
-  [selectPostsState],
-  postsState => postsState.items
-);
-
-export const selectDeletedIds = createSelector(
-  [selectPostsState],
-  postsState => postsState.deletedIds
-);
-
-// Questi possono restare semplici
-export const selectModifiedIds = state => state.posts.modifiedIds;
-export const selectPostsStatus = state => state.posts.status;
-export const selectPostsError  = state => state.posts.error;
+export const selectAllPosts     = createSelector(selectPostsState, s => s.items);
+export const selectDeletedIds   = createSelector(selectPostsState, s => s.deletedIds);
+export const selectModifiedIds  = state => state.posts.modifiedIds;
+export const selectPostsStatus  = state => state.posts.status;
+export const selectPostsError   = state => state.posts.error;
+export const selectNextCursor   = state => state.posts.nextCursor;
+export const selectPrevCursor   = state => state.posts.prevCursor;
 
 export default postSlice.reducer;

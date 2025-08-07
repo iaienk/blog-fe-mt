@@ -1,18 +1,52 @@
+@import "../../styles/variables"; // se i :root e il mixin sono definiti in un file centrale
+
 .container {
   display: flex;
   flex-direction: column;
-  align-items: center; // centra orizzontalmente il contenuto
+  align-items: center;
   padding: 2rem;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
-
 
 .list {
   display: flex;
   flex-direction: column;
-  justify-content: center; // centra verticalmente le card
-  align-items: center;      // centra orizzontalmente le card
-  gap:1rem;                // spazio tra le card
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
   padding: 2rem 0;
   max-width: 900px; 
   width: 100%;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 1.5rem 0;
+
+  button {
+
+    color: var(--text-color);
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover:not(:disabled) {
+      background-color: none;
+    }
+
+    &:disabled {
+      
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+  }
+
+  span {
+    font-weight: bold;
+    font-size: 1rem;
+  }
 }
