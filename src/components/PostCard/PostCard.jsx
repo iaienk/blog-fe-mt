@@ -71,7 +71,7 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
     minute: '2-digit'
   });
 
-  const placeholder = 'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753866488/placeholder-image.png';
+  const placeholder = 'https://res.cloudinary.com/dkijvk8aq/image/upload/v1754562873/ImagesComingSoon.png';
   const imageUrl    = image || placeholder;
 
   // Handle post deletion via socket
