@@ -53,6 +53,8 @@
 
 .content {
   color: var(--text-color);
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .footer {
