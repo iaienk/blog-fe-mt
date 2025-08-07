@@ -83,7 +83,7 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
   const isDeleted = deletedIds.includes(post.id);
 
   const placeholder   =
-    'https://res.cloudinary.com/dkijvk8aq/image/upload/v1753866488/placeholder-image.png';
+    'https://res.cloudinary.com/dkijvk8aq/image/upload/v1754562873/ImagesComingSoon.png';
   const imageUrl      = post.image || placeholder;
   const isModified    = post.publishDate !== _post.publishDate;
   const published     = new Date(post.publishDate);

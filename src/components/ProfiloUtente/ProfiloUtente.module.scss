@@ -188,8 +188,9 @@
 
 .postsGrid {
   display: flex;
+  gap: 1rem;  /* spazio tra gli elementi */
   flex-wrap: wrap;
-  justify-content: flex-start;  /* allinea a sinistra come su Instagram */
+  justify-content: center;
   width: 100%;
   max-width: 1200px;             /* container si ferma a 1000px */
   margin: 0 auto;                /* centra orizzontalmente */
