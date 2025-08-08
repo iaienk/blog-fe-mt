@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal                       from '../Modal/Modal';
 import CreatableSelect             from 'react-select/creatable';
-import TiptapEditor                from '../TiptapEditor/TiptapEditor';
+import TinyMCEEditor from '../TinyMCEEditor/TinyMCEEditor.jsx';
 import { useSocketContext }        from '../../context/SocketProvider';
 import { useSocketEmit }           from '../../hooks/useSocketEmit';
 import { useSelector, useDispatch } from 'react-redux';
@@ -146,7 +146,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
         {/* Contenuto */}
         <label className={styles['post-modal__field']}>
           <span>Contenuto</span>
-          <TiptapEditor value={content} onChange={setContent} />
+          <TinyMCEEditor value={content} onChange={setContent} />
         </label>
 
         {/* Tag con debounce */}
