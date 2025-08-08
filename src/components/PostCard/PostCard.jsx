@@ -33,16 +33,13 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
     liked_by = []
   } = post;
 
-  // Determine if current user has liked (may always be false if backend omits liked_by)
   const initialLiked = userId ? liked_by.includes(userId) : false;
 
-  // Comment selectors
   const selectComments     = useMemo(makeSelectCommentsByPost, []);
   const selectCommentCount = useMemo(makeSelectCommentCountByPost, []);
   const comments           = useSelector(state => selectComments(state, id));
   const commentCount       = useSelector(state => selectCommentCount(state, id));
 
-  // Load comments for preview and count
   useEffect(() => {
     fetch(`${import.meta.env.VITE_API_URL}/posts/${id}/comments`)
       .then(res => {
@@ -90,7 +87,6 @@ const PostCard = ({ post, onEdit, onViewDetail, onDelete }) => {
     });
   };
 
-  // Last comment preview
   const lastComment = comments.length > 0 ? comments[comments.length - 1] : null;
   const commentDate = lastComment
     ? `${new Date(lastComment.created_at).toLocaleDateString('it-IT', {

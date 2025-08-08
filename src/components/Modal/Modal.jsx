@@ -12,13 +12,11 @@ const Modal = ({ children, onClose, className = '' }) => {
     return () => document.removeEventListener('keydown', handleKey);
   }, [onClose]);
 
-  // blocca scroll body quando aperto
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
-  // clic su overlay chiude
   const handleOverlayClick = (e) => {
     if (e.target === e.currentTarget) onClose();
   };
@@ -32,7 +30,7 @@ const Modal = ({ children, onClose, className = '' }) => {
         {children}
       </div>
     </div>,
-    document.getElementById('modal-root') // assicurati che esista in index.html
+    document.getElementById('modal-root')
   );
 };
 

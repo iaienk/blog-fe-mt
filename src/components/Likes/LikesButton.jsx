@@ -8,25 +8,23 @@ import styles                  from './LikesButton.module.scss';
 
 const LikeButton = ({ postId, initialLiked, initialCount }) => {
   const { socket, ready } = useSocketContext();
-  const userId            = useSelector(userSelector)?.id;
+  const user              = useSelector(userSelector);
+  const userId            = user?.id;
 
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
 
-  // Sync local state whenever the parent props change
   useEffect(() => {
     setLiked(initialLiked);
     setCount(initialCount);
   }, [initialLiked, initialCount]);
 
-  // Helper to pull the array of likers from various possible fields
   const extractLikers = payload =>
     Array.isArray(payload.liked_by)   ? payload.liked_by
   : Array.isArray(payload.userIds)    ? payload.userIds
   : Array.isArray(payload.likedBy)    ? payload.likedBy
   : [];
 
-  // Listen for server broadcasts
   useEffect(() => {
     if (!socket) return;
     const onBroadcast = updatedPost => {
@@ -39,9 +37,11 @@ const LikeButton = ({ postId, initialLiked, initialCount }) => {
     return () => socket.off('likeToggled', onBroadcast);
   }, [socket, postId, userId]);
 
-  // Send toggle and handle ack
   const toggleLike = e => {
     e.stopPropagation();
+    if (!userId) {
+      return alert('Devi essere loggato per mettere like');
+    }
     if (!ready) {
       return alert('Connessione non pronta. Riprova tra un attimo.');
     }
@@ -61,8 +61,16 @@ const LikeButton = ({ postId, initialLiked, initialCount }) => {
   };
 
   return (
-    <button onClick={toggleLike} className={styles.button}>
-      {liked ? <FaHeart className={styles.icon}/> : <FaRegHeart className={styles.icon}/>}
+    <button
+      onClick={toggleLike}
+      className={styles.button}
+      disabled={!userId} // disabilitato se non loggato
+      title={!userId ? 'Devi essere loggato per mettere like' : undefined}
+    >
+      {liked
+        ? <FaHeart    className={styles.icon} />
+        : <FaRegHeart className={styles.icon} />
+      }
       <span className={styles.count}>{count}</span>
     </button>
   );

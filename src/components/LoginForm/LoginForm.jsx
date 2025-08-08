@@ -17,7 +17,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      // 1) Login…
+
       const loginRes = await fetch('/user/login', {
         method: 'POST',
         credentials: 'include',
@@ -26,9 +26,7 @@ export default function LoginForm() {
       });
       if (!loginRes.ok) throw new Error('Login fallito');
       const userData = await loginRes.json();
-      // { id, email, accessToken, refreshToken }
 
-      // 2) “Maschero” il GET /user/profile via PATCH vuoto
       const profiloRes = await fetch('/user/profile', {
         method: 'PATCH',
         credentials: 'include',
@@ -40,16 +38,13 @@ export default function LoginForm() {
       });
       if (!profiloRes.ok) throw new Error('Impossibile recuperare il profilo');
       const profilo = await profiloRes.json();
-      // { message, id, email, username, avatar }
 
-      // 3) Merge token + profilo ed effettua il dispatch di setUser
       const fullUser = { 
-        ...userData,    // accessToken & refreshToken
-        ...profilo      // username, avatar, message…
+        ...userData, 
+        ...profilo 
       };
       dispatch(setUser(fullUser));
 
-      // 4) Naviga al profilo
       navigate('/profile');
     } catch (err) {
       console.error('Login error:', err);

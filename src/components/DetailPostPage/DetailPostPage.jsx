@@ -8,7 +8,7 @@ import {
   selectAllPosts,
   selectDeletedIds,
   postDeleted
-}                                      from '../../reducers/post.slice';
+}                                       from '../../reducers/post.slice';
 import {
   commentsLoaded,
   commentAdded,
@@ -16,7 +16,7 @@ import {
   commentRemoved,
   makeSelectCommentsByPost,
   makeSelectCommentCountByPost
-}                                      from '../../reducers/comment.slice';
+}                                       from '../../reducers/comment.slice';
 import { FiEdit, FiTrash2 }             from 'react-icons/fi';
 import { useSocketContext }             from '../../context/SocketProvider';
 import LikeButton                       from '../Likes/LikesButton';
@@ -32,17 +32,14 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
   const deletedIds = useSelector(selectDeletedIds);
   const { socket, ready } = useSocketContext();
 
-  // Use the up-to-date post from store
   const post = allPosts.find(p => p.id === _post.id) || _post;
 
-  // --- Likes setup ---
   const {
     total_likes = 0,
     liked_by = []
   } = post;
   const initialLiked = userId ? liked_by.includes(userId) : false;
 
-  // --- Comments setup ---
   const selectCommentsByPost     = useMemo(makeSelectCommentsByPost, []);
   const selectCommentCountByPost = useMemo(makeSelectCommentCountByPost, []);
   const comments = useSelector(s => selectCommentsByPost(s, post.id));
@@ -77,7 +74,6 @@ export default function DetailPostPage({ post: _post, onClose, onDelete }) {
     };
   }, [ready, socket, post.id, dispatch]);
 
-  // POST UI LOGIC
   const [isEditing, setIsEditing] = useState(false);
   const canEdit   = userId === post.authorId;
   const isDeleted = deletedIds.includes(post.id);

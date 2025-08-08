@@ -7,7 +7,6 @@ export default function RecuperoPassword() {
   const params = useParams();
   const navigate = useNavigate();
 
-  // Prende il token da ?token= oppure da /reset-password/:token
   const token = searchParams.get('token') || params.token || '';
 
   const [status, setStatus]      = useState('checking');

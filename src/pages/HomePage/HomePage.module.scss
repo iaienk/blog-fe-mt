@@ -1,4 +1,4 @@
-@import "../../styles/variables"; // se i :root e il mixin sono definiti in un file centrale
+@use "../../styles/variables" as vars;
 
 .container {
   display: flex;
@@ -23,7 +23,7 @@
 .pagination {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
   margin: 1.5rem 0;
 
   button {

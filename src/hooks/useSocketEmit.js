@@ -19,7 +19,5 @@ export function useSocketEmit() {
     });
   }, [socket, ready]);
 
-  // aggiungi qui gli altri emit helpers che ti servono...
-
   return { getTags };
 }

@@ -20,11 +20,11 @@ export const loginUser = async (credentials) => {
       // credenziali sbagliate
       throw new Error("Email o password non validi");
     }
-    // altri errori
+    
     throw new Error(
       data?.message || `Errore ${res.status}: ${text.substring(0, 100)}`
     );
   }
 
-  return data; // { accessToken, ... }
+  return data; 
 };

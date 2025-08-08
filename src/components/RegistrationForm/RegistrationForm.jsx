@@ -50,7 +50,6 @@ const RegistrationForm = () => {
     setError("");
     setSuccess("");
 
-    // blocca solo se le due password non corrispondono completamente
     if (formData.password !== formData.confirm) {
       setError("Le password non corrispondono.");
       return;
@@ -137,6 +136,7 @@ const RegistrationForm = () => {
           onChange={handleChange}
           required
         />
+
         {/* errore appena differenza di carattere */}
         {formData.confirm &&
           !formData.password.startsWith(formData.confirm) && (
@@ -144,6 +144,7 @@ const RegistrationForm = () => {
               Le password non corrispondono ❌
             </span>
           )}
+          
         {/* successo solo se confirm non è vuoto, lunghezze uguali e stringhe identiche */}
         {formData.confirm.length > 0 &&
           formData.confirm.length === formData.password.length &&

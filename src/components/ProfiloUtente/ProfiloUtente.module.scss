@@ -59,7 +59,6 @@
     // email (solo lettura)
     input[readonly] {
       @extend %readonly-field;
-      // background-color: #cccccc ;
     }
 
     // username (modificabile)
@@ -82,7 +81,6 @@
       }
     }
 
-    // valore in visualizzazione
     .value {
       @extend %readonly-field;
       display: block;
@@ -159,9 +157,9 @@
 }
 
 .actions button:disabled {
-  background-color: #ccc;    // sfondo grigio chiaro
-  color: #666;               // testo più scuro/grigio
-  cursor: default;           // cursor a freccia
+  background-color: #ccc; 
+  color: #666; 
+  cursor: default;  
 }
 
 .actions button:disabled:hover {
@@ -188,29 +186,27 @@
 
 .postsGrid {
   display: flex;
-  gap: 1rem;  /* spazio tra gli elementi */
+  gap: 1rem; 
   flex-wrap: wrap;
   justify-content: center;
   width: 100%;
-  max-width: 1200px;             /* container si ferma a 1000px */
-  margin: 0 auto;                /* centra orizzontalmente */
+  max-width: 1200px; 
+  margin: 0 auto; 
 }
 
 .postItem {
   box-sizing: border-box;              
-  width: 360px;               /* larghezza fissa 310px */
+  width: 360px;
 }
 
-/* Da 3 colonne (>1000px) a 2 colonne */
 @media (max-width: 1160px) {
   .postItem {
-    flex: 0 0 calc(50% - 16px);  /* 2 items per riga, gap totale 16px */
+    flex: 0 0 calc(50% - 16px);
   }
 }
 
-/* Da 2 colonne a 1 sola (<650px) */
 @media (max-width: 775px) {
   .postItem {
-    flex: 0 0 100%;               /* occupa tutta la riga */
+    flex: 0 0 100%; 
   }
 }

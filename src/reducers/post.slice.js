@@ -2,7 +2,6 @@
 import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import * as postService from "../services/post.service";
 
-// Carica da localStorage gli ID già eliminati in sessioni precedenti
 const persistedDeletedIds = (() => {
   try {
     const raw = window.localStorage.getItem("deletedPosts");
@@ -12,7 +11,6 @@ const persistedDeletedIds = (() => {
   }
 })();
 
-// Thunk per caricare i post via REST (cursor-based pagination)
 export const fetchPosts = createAsyncThunk(
   "posts/fetchAll",
   async (params, thunkAPI) => {

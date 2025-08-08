@@ -7,7 +7,6 @@ export const registerUser = async (userData) => {
     body: JSON.stringify(userData),
   });
 
-  // leggiamo sempre come testo per non sbattere su un HTML di errore
   const text = await res.text();
   let payload;
   try {
@@ -17,13 +16,11 @@ export const registerUser = async (userData) => {
   }
 
   if (!res.ok) {
-    // payload.code === "REGISTER_FAILED" è l'unico codice che torniamo oggi
-    // 👉 HACK: mostrare messaggio più user-friendly fino a quando il BE non invierà codici specifici.
+
     if (payload?.code === "REGISTER_FAILED") {
       throw new Error("Username o email già registrati.");
     }
 
-    // altrimenti prova a pescare payload.message o fallback generico
     const msg =
       payload?.message?.trim() ||
       (typeof payload === "string" ? payload.trim() : "") ||
@@ -32,6 +29,5 @@ export const registerUser = async (userData) => {
     throw new Error(msg);
   }
 
-  // in caso di successo restituiamo il JSON (o null se payload non JSON)
   return typeof payload === "object" ? payload : null;
 };

@@ -27,20 +27,18 @@ export function PostModal({ mode, initialData = {}, onClose }) {
   );
   const [tagOptions, setTagOptions] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(false);
-  const [inputValue, setInputValue] = useState('');           // for CreatableSelect input
+  const [inputValue, setInputValue] = useState(''); 
   const [imageFile, setImageFile] = useState(null);
 
  useEffect(() => {
    if (!ready) return;
 
-   // se il campo è vuoto, azzeriamo le opzioni e non facciamo fetch
    if (inputValue.trim() === '') {
      setTagOptions([]);
      setTagsLoading(false);
      return;
    }
 
-   // debounce di 500ms
    const timer = setTimeout(() => {
      setTagsLoading(true);
      getTags({ name: inputValue, cursor: null, direction: 'next', limit: 50 })
@@ -61,7 +59,6 @@ export function PostModal({ mode, initialData = {}, onClose }) {
    return () => clearTimeout(timer);
  }, [inputValue, ready, getTags]);
 
-  // listeners for create/update events
   useEffect(() => {
     if (!socket) return;
     const onCreated = newPost => {
@@ -161,7 +158,7 @@ export function PostModal({ mode, initialData = {}, onClose }) {
           value={selectedTags}
           onChange={(newValue, actionMeta) => {
             setSelectedTags(newValue);
-            // se hai selezionato un’opzione o ne hai creata una, resetta l’input
+
             if (actionMeta.action === 'select-option' || actionMeta.action === 'create-option') {
               setInputValue('');
             }

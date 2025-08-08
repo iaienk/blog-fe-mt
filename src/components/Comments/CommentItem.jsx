@@ -9,7 +9,6 @@ import {
 }                                      from '../../reducers/comment.slice';
 import { userSelector }               from '../../reducers/user.slice';
 import styles                         from './CommentItem.module.scss';
-// Import PostModal styles and icons
 import modalStyles                    from '../PostModal/PostModal.module.scss';
 import { FiX, FiSave, FiEdit, FiTrash2 } from 'react-icons/fi';
 

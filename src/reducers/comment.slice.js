@@ -1,13 +1,12 @@
 // src/reducers/comment.slice.js
 import { createSlice, createSelector } from '@reduxjs/toolkit';
 
-// Fallback stabile per array vuoto
 const EMPTY_COMMENTS = [];
 
 const commentsSlice = createSlice({
   name: 'comments',
   initialState: {
-    byPost: {}  // { [postId]: [comment, …] }
+    byPost: {} 
   },
   reducers: {
     commentsLoaded: (state, action) => {
@@ -41,26 +40,14 @@ export const {
 
 export default commentsSlice.reducer;
 
-// --- Memoized selectors ---
-
-// Base selector: restituisce la mappa byPost
 const selectByPost = state => state.comments.byPost;
 
-/**
- * Factory selector memoizzato:
- * restituisce sempre la stessa array (EMPTY_COMMENTS) finché non
- * arriva un array vero in byPost[postId].
- */
 export const makeSelectCommentsByPost = () =>
   createSelector(
     [selectByPost, (_state, postId) => postId],
     (byPost, postId) => byPost[postId] || EMPTY_COMMENTS
   );
 
-/**
- * Factory selector memoizzato per il conteggio:
- * restituisce un numero primitivo (0 se non ci sono commenti).
- */
 export const makeSelectCommentCountByPost = () =>
   createSelector(
     [selectByPost, (_state, postId) => postId],

@@ -5,6 +5,7 @@ const BASE_URL = import.meta.env.VITE_API_URL;
  * @param {string} email - Indirizzo email dell’utente.
  * @returns {Promise<{ message: string }>}
  */
+
 export async function requestPasswordReset(email) {
   if (typeof email !== 'string' || !email.includes('@')) {
     throw new Error('Inserisci un indirizzo email valido');

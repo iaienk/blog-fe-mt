@@ -14,7 +14,6 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const { theme, toggleTheme } = React.useContext(ThemeContext);
 
-  // Prendo l'user da Redux e considero "loggato" se c'è un accessToken
   const user = useSelector(userSelector);
   const isLoggedIn = Boolean(user.accessToken);
   const navigate = useNavigate();

@@ -27,18 +27,15 @@ export default function ProfiloUtente() {
   const postsStatus = useSelector(selectPostsStatus);
   const { socket, ready } = useSocketContext();
 
-  // modals: dettaglio e modifica
   const [detailPost,  setDetailPost]  = useState(null);
   const [editingPost, setEditingPost] = useState(null);
 
-  // 1) Carica i post
   useEffect(() => {
     if (postsStatus === 'idle') {
       dispatch(fetchPosts({ limit: 100 }));
     }
   }, [postsStatus, dispatch]);
 
-  // 2) Filtra e ordina i post dell'utente
   const sortedUserPosts = useMemo(() => {
     if (!user) return [];
     return allPosts
@@ -46,7 +43,6 @@ export default function ProfiloUtente() {
       .sort((a, b) => new Date(b.publishDate) - new Date(a.publishDate));
   }, [allPosts, user]);
 
-  // profilo utente states
   const [username, setUsername]             = useState(user?.username || '');
   const [avatar, setAvatar]                 = useState(user?.avatar || PLACEHOLDER);
   const [nuovoAvatarUrl, setNuovoAvatarUrl] = useState(null);
@@ -57,7 +53,6 @@ export default function ProfiloUtente() {
     username !== user?.username ||
     !!nuovoAvatarUrl;
 
-  // Sync user data into form
   useEffect(() => {
     if (!user) return;
     setUsername(user.username);
@@ -67,7 +62,6 @@ export default function ProfiloUtente() {
     setFeedback('');
   }, [user]);
 
-  // feedback timeout
   useEffect(() => {
     if (feedback === 'Profilo aggiornato con successo!') {
       const t = setTimeout(() => setFeedback(''), 2000);
@@ -75,7 +69,6 @@ export default function ProfiloUtente() {
     }
   }, [feedback]);
 
-  // debounce username check
   useEffect(() => {
     if (!ready || !socket) return;
     if (!isEditing || username === user.username) {
@@ -148,7 +141,7 @@ export default function ProfiloUtente() {
 
   const handleDelete = postId => {
     dispatch(postDeleted(postId));
-    // se stiamo guardando il dettaglio di quel post, chiudo il modal
+
     if (detailPost?.id === postId) {
       setDetailPost(null);
     }

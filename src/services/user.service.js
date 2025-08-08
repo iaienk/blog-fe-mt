@@ -11,13 +11,13 @@ export const checkUsernameAvailability = async (username) => {
     throw new Error(`Errore server: ${res.status}`);
   }
   const data = await res.json();
-  return data.available; // true|false
+  return data.available; 
 };
 
 export async function updateUserProfile(formData) {
   const response = await fetch(`${BASE_URL}/user/update-profile`, {
     method: 'PUT',
-    credentials: 'include', // se usi sessioni/cookies
+    credentials: 'include',
     body: formData,
   });
 
